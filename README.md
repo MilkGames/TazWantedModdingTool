@@ -1,7 +1,7 @@
-# Taz Wanted Decrypter
+# Taz Wanted Modding Tool
 Original source code belongs to **[MuxaJlbl4 (MuLLlaH9!)](https://github.com/MuxaJlbl4)**
 
-This software is designed for decrypting Taz: Wanted game files.
+This software is designed for decrypting and (in the future) unpacking & encrypting Taz: Wanted game files.
 
 Planned:
 - Adding automation for decrypting bmps and gifs
