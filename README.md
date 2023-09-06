@@ -8,5 +8,5 @@ Planned:
 - Adding a basic interface for unpacking, decrypting, encrypting and for different platforms (Windows, PS2, Xbox, GCN).
 - Adding quickbms directly to the program and automate the collection of output files.
 - Adding SoX/VGMToolbox to support decryption of sounds and music within the application.
-- Add decrypting of text files directly in the application.
+- Adding decrypting of text files directly in the application.
 - Adding texture decrypting from PS2, Xbox and GCN.
