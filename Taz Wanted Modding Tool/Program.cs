@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Taz_Wanted_Unpacker
+namespace Taz_Wanted_Modding_Tool
 {
     static class Program
     {

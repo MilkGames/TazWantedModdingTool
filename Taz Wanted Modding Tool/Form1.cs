@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Taz_Wanted_Unpacker
+namespace Taz_Wanted_Modding_Tool
 {
     public partial class Form1 : Form
     {
@@ -21,8 +21,8 @@ namespace Taz_Wanted_Unpacker
 
         private void convertBmp_Click(object sender, EventArgs e)
         {
-            //open open and save dialogs
-            if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogResult.OK)
+            //open and save dialogs
+            if (openFile.ShowDialog() == DialogResult.OK)
             {
                 foreach (String fileName in openFile.FileNames)
                 {
@@ -101,16 +101,97 @@ namespace Taz_Wanted_Unpacker
                     convertedData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
 
                     //save file with new name
-                    string newname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileName(fileName) + ".bmp";
-                    File.WriteAllBytes(newname, convertedFile);
+                    File.WriteAllBytes(fileName, convertedFile);
                 }
+            }
+        }
+
+        private void convertAllBmps_Click(object sender, EventArgs e)
+        {
+            string filesPath = allFilesPath.Text;
+            IEnumerable<string> allfiles = Directory.EnumerateFiles(filesPath, "*.bmp", SearchOption.AllDirectories);
+            foreach (String fileName in allfiles)
+            {
+                //open file
+                byte[] gameFile = File.ReadAllBytes(fileName);
+
+                //header parts
+                byte[] bmpHeaderStart = {
+                        0x42, 0x4d, 0x46, 0x20, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
+                        0x00, 0x00
+                    };
+
+                //copy sizes to header
+                byte[] bmpHeaderWidthHeight = new byte[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    bmpHeaderWidthHeight[i] = gameFile[i];
+                }
+
+                byte[] bmpHeaderEnd = {
+                                    0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
+                        0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x13, 0x0b,
+                        0x00, 0x00, 0x13, 0x0b, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c,
+                        0x00, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x1f, 0x00,
+                        0x00, 0x00, 0x00, 0x80, 0x00, 0x00
+                    };
+
+                //cut data without header and trash at end
+                //1 pixel = 2 bytes
+                int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
+                int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
+
+                byte[] rawData = new byte[width * height];
+                for (int i = 0; i < rawData.Length; i++)
+                {
+                    rawData[i] = gameFile[i + 32];
+                }
+
+                //flip data
+                byte[] convertedData = new byte[rawData.Length];
+                for (int i = 0; i < convertedData.Length; i++)
+                {
+                    convertedData[i] = rawData[rawData.Length - 1 - i];
+                }
+
+                //flip strings + flip words
+                for (int i = 0; i < height; i++)
+                {
+                    int start = i * width;
+                    for (int j = 0; j < width / 2; j++)
+                    {
+                        byte temp = convertedData[start + j];
+                        convertedData[start + j] = convertedData[start + width - j - 1];
+                        convertedData[start + width - j - 1] = temp;
+                    }
+                }
+                /*
+                //flip words
+                for (int i = 0; i < convertedData.Length; i+=2)
+                {
+                    byte temp = convertedData[i];
+                    convertedData[i] = convertedData[i+1];
+                    convertedData[i + 1] = temp;
+                }
+                */
+                //add parts
+                int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
+                byte[] convertedFile = new byte[length];
+                bmpHeaderStart.CopyTo(convertedFile, 0);
+                bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
+                bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
+                convertedData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
+
+                File.WriteAllBytes(fileName, convertedFile);
             }
         }
 
         private void convertGif_Click(object sender, EventArgs e)
         {
             //open dialog
-            if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogResult.OK)
+            if (openFile.ShowDialog() == DialogResult.OK)
             {
                 foreach (String fileName in openFile.FileNames)
                 {
@@ -182,11 +263,94 @@ namespace Taz_Wanted_Unpacker
                         frameData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
 
                         //save file with new name
-                        string newname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileName(fileName) + (gifFrames - i - 1).ToString() + ".bmp";
+                        string newname = fileName + (gifFrames - i - 1).ToString() + ".bmp";
                         File.WriteAllBytes(newname, convertedFile);
                         //File.WriteAllBytes(fileName + "_" + (gifFrames-i-1).ToString() + ".bmp", convertedFile);
                     }
+                    File.Delete(fileName);
                 }
+            }
+        }
+
+        private void convertAllGifs_Click(object sender, EventArgs e)
+        {
+            string filesPath = allFilesPath.Text;
+            IEnumerable<string> allfiles = Directory.EnumerateFiles(filesPath, "*.gif", SearchOption.AllDirectories);
+            foreach (String fileName in allfiles)
+                {
+                    //open file
+                    byte[] gameFile = File.ReadAllBytes(fileName);
+
+                    //header parts
+                    byte[] bmpHeaderStart = {
+                        0x42, 0x4d, 0x46, 0x20, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
+                        0x00, 0x00
+                    };
+
+                    //copy sizes to header
+                    byte[] bmpHeaderWidthHeight = new byte[8];
+                    for (int i = 0; i < 8; i++)
+                    {
+                        bmpHeaderWidthHeight[i] = gameFile[i];
+                    }
+
+                    byte[] bmpHeaderEnd = {
+                                    0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
+                        0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x13, 0x0b,
+                        0x00, 0x00, 0x13, 0x0b, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c,
+                        0x00, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x1f, 0x00,
+                        0x00, 0x00, 0x00, 0x80, 0x00, 0x00
+                    };
+
+                    //copy frames number
+                    byte gifFrames = gameFile[15];
+
+                    //flip data + cut old header
+                    byte[] convertedData = new byte[gameFile.Length - 28 - (gifFrames * 4)];
+                    for (int i = 0; i < convertedData.Length; i++)
+                    {
+                        convertedData[i] = gameFile[gameFile.Length - 1 - i];
+                    }
+
+                    //flip strings + flip words
+                    //1 pixel = 2 bytes
+                    int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
+                    int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
+                    for (int i = 0; i < height * gifFrames; i++)
+                    {
+                        int start = i * width;
+                        for (int j = 0; j < width / 2; j++)
+                        {
+                            byte temp = convertedData[start + j];
+                            convertedData[start + j] = convertedData[start + width - j - 1];
+                            convertedData[start + width - j - 1] = temp;
+                        }
+                    }
+
+                    //copy size
+                    //multiplied by 2 earlier in width
+                    int frameSize = width * height;
+
+                    //divide pictures
+                    for (int i = 0; i < gifFrames; i++)
+                    {
+                        //add parts
+                        int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + (frameSize);
+                        byte[] convertedFile = new byte[length];
+                        bmpHeaderStart.CopyTo(convertedFile, 0);
+                        bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
+                        bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
+                        byte[] frameData = convertedData.Skip(i * frameSize).Take(frameSize).ToArray();
+                        frameData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
+
+                        //save file with new name
+                        string newname = fileName + (gifFrames - i - 1).ToString() + ".bmp";
+                        File.WriteAllBytes(newname, convertedFile);
+                        //File.WriteAllBytes(fileName + "_" + (gifFrames-i-1).ToString() + ".bmp", convertedFile);
+                    }
+                    File.Delete(fileName);
             }
         }
 
@@ -256,7 +420,7 @@ namespace Taz_Wanted_Unpacker
                     byte[] rawData = new byte[width * height];
                     for (int i = 0; i < rawData.Length; i++)
                     {
-                        rawData[i] = gameFile[i + 32];
+                        rawData[i] = gameFile[i + 20];
                     }
 
                     //flip data
@@ -354,7 +518,7 @@ namespace Taz_Wanted_Unpacker
                     if (format == 0x04) // 16 bit
                     {
                         // Bitmap slice
-                        byte[] RawBitmap = new ArraySegment<byte>(gameFile, 0xF0, 2 * width * height).ToArray();
+                        byte[] RawBitmap = new ArraySegment<byte>(gameFile, 0xC0, 2 * width * height).ToArray();
 
                         // Flip
                         RawBitmap = Flip(RawBitmap, width, height);
@@ -375,11 +539,38 @@ namespace Taz_Wanted_Unpacker
                     else if (format == 0x06) // 8 bit with palette
                     {
                         // Bitmap slice
-                        byte[] RawBitmap = new ArraySegment<byte>(gameFile, 0xF0, width * height).ToArray();
-
+                        byte[] RawBitmap = new ArraySegment<byte>(gameFile, 0xC0, width * height).ToArray();
 
                         // Palette slice
-                        byte[] RawPalette = new ArraySegment<byte>(gameFile, 0xF0 + RawBitmap.Length, 256 * 2).ToArray();
+                        byte[] RawPalette = new ArraySegment<byte>(gameFile, 0xC0 + RawBitmap.Length, 256 * 2).ToArray();
+
+                        // Swap
+                        //RawPalette = Swap(RawPalette, 256, 1);
+
+                        byte[] NewBitmap = PaletteTo555(RawBitmap, RawPalette, width, height);
+
+                        // Flip
+                        NewBitmap = Flip(NewBitmap, width, height);
+
+
+                        // Swap
+                        //NewBitmap = Swap(NewBitmap, width, height);
+
+                        NewBitmap = Mirror(NewBitmap, width, height);
+
+                        // Color
+                        //NewBitmap = Color(NewBitmap, width, height);
+
+                        SaveAsBmp(fileName, NewBitmap, width, height);
+
+                    }
+                    else if (format == 0x08) // 4 bit
+                    {
+                        // Bitmap slice
+                        byte[] RawBitmap = new ArraySegment<byte>(gameFile, 0xC0, width * height / 2).ToArray();
+
+                        // Palette slice
+                        byte[] RawPalette = new ArraySegment<byte>(gameFile, 0xC0 + width * height / 2, 32).ToArray();
 
                         // Swap
                         //RawPalette = Swap(RawPalette, 256, 1);
@@ -387,16 +578,9 @@ namespace Taz_Wanted_Unpacker
                         byte[] NewBitmap = PaletteTo555(RawBitmap, RawPalette, width, height);
 
                         SaveAsBmp(fileName, NewBitmap, width, height);
-
-                    }
-                    else if (format == 0x08) // 4 bit
-                    {
-                        continue;
                     }
                     else
                         continue;
-
-
                 }
             }
         }
@@ -933,8 +1117,26 @@ namespace Taz_Wanted_Unpacker
                     Converted[i * 2] = 0xFF;
                     Converted[(i * 2) + 1] = 0xFF;
                 }*/
-                Converted[i*2] = (byte)Palette[Bitmap[i]*2];
+                Converted[i*2] = (byte)Palette[Bitmap[i] * 2];
                 Converted[(i * 2) +1] = (byte)Palette[(Bitmap[i]*2)+1];
+            }
+            return Converted;
+        }
+
+        public byte[] PaletteTo1555(byte[] Bitmap, byte[] Palette, int width, int height)
+        {
+            int size = 2 * width * height;
+            byte[] Converted = new byte[size];
+            for (int i = 0; i < size / 2; i++)
+            {
+                /*if (Bitmap[i] >= 0x80) 
+                {
+                    Converted[i * 2] = 0xFF;
+                    Converted[(i * 2) + 1] = 0xFF;
+                }*/
+                byte temp = (byte)Palette[Bitmap[i] % 32];
+                Converted[i * 2] = temp;
+                Converted[(i * 2) + 1] = (byte)Palette[(Bitmap[i] % 32) + 1];
             }
             return Converted;
         }
