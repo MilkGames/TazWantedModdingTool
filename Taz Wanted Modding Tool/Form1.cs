@@ -17,8 +17,10 @@ namespace Taz_Wanted_Modding_Tool
         public Form1()
         {
             InitializeComponent();
+            comboBox1.SelectedIndex = 0;
+            comboBox2.SelectedIndex = 0;
         }
-
+        /*
         private void convertBmp_Click(object sender, EventArgs e)
         {
             //open and save dialogs
@@ -91,7 +93,7 @@ namespace Taz_Wanted_Modding_Tool
                         convertedData[i] = convertedData[i+1];
                         convertedData[i + 1] = temp;
                     }
-                    */
+                    * / // non-important piece of code
                     //add parts
                     int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
                     byte[] convertedFile = new byte[length];
@@ -105,7 +107,8 @@ namespace Taz_Wanted_Modding_Tool
                 }
             }
         }
-
+        */
+        /*
         private void convertAllBmps_Click(object sender, EventArgs e)
         {
             string filesPath = allFilesPath.Text;
@@ -175,7 +178,7 @@ namespace Taz_Wanted_Modding_Tool
                     convertedData[i] = convertedData[i+1];
                     convertedData[i + 1] = temp;
                 }
-                */
+                * / // non-important piece of code
                 //add parts
                 int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
                 byte[] convertedFile = new byte[length];
@@ -187,7 +190,8 @@ namespace Taz_Wanted_Modding_Tool
                 File.WriteAllBytes(fileName, convertedFile);
             }
         }
-
+        */
+        /*
         private void convertGif_Click(object sender, EventArgs e)
         {
             //open dialog
@@ -271,7 +275,8 @@ namespace Taz_Wanted_Modding_Tool
                 }
             }
         }
-
+        */
+        /*
         private void convertAllGifs_Click(object sender, EventArgs e)
         {
             string filesPath = allFilesPath.Text;
@@ -353,7 +358,8 @@ namespace Taz_Wanted_Modding_Tool
                     File.Delete(fileName);
             }
         }
-
+        */
+        /*
         private void convertTga_Click(object sender, EventArgs e)
         {
             //open open and save dialogs
@@ -450,7 +456,7 @@ namespace Taz_Wanted_Modding_Tool
                         convertedData[i] = convertedData[i+1];
                         convertedData[i + 1] = temp;
                     }
-                    */
+                    //add * / in the future
                     //add parts
                     int length = tgaHeader.Length + rawData.Length + tgaFooter.Length;
                     byte[] convertedFile = new byte[length];
@@ -459,12 +465,12 @@ namespace Taz_Wanted_Modding_Tool
                     tgaFooter.CopyTo(convertedFile, tgaHeader.Length + rawData.Length);
 
                     //save file with new name
-                    string newname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileName(fileName)/* + ".tga"*/;
-                    File.WriteAllBytes(newname, convertedFile);
+                    string newname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileName(fileName)/* + ".tga"*/ // ; missed
+                    /* File.WriteAllBytes(newname, convertedFile); uncomment if needed
                 }
             }
         }
-
+        /*
         private void convertWav_Click(object sender, EventArgs e)
         {
             //open open and save dialogs
@@ -499,7 +505,8 @@ namespace Taz_Wanted_Modding_Tool
                 File.Delete(tempfile);
             }
         }
-
+        */
+        /*
         private void ps2bmp_Click(object sender, EventArgs e)
         {
             //open dialog
@@ -584,7 +591,7 @@ namespace Taz_Wanted_Modding_Tool
                 }
             }
         }
-
+        */
 
         public void SaveAsBmp(string filename, byte[] Bitmap, int width, int height)
         {
@@ -648,7 +655,7 @@ namespace Taz_Wanted_Modding_Tool
             string BmpName = Path.Combine(SaveDir, Path.GetFileName(filename));
             File.WriteAllBytes(BmpName, BmpFile);
         }
-
+        /*
         public void SaveAsTga(string filename, byte[] Bitmap, byte[] Palette, int width, int height)
         {
             // Init Tga Header
@@ -670,7 +677,7 @@ namespace Taz_Wanted_Modding_Tool
             string TgaName = Path.Combine(Path.GetDirectoryName(saveFile.FileName), Path.GetFileName(filename) + ".tga");
             File.WriteAllBytes(TgaName, TgaFile);
         }
-
+        */
         public byte[] Flip(byte[] Bitmap, int width, int height)
         {
             int size = 2 * width * height;
@@ -775,7 +782,7 @@ namespace Taz_Wanted_Modding_Tool
 
             return Replaced;
         }
-
+        /*
         private void xbpbmp_Click(object sender, EventArgs e)
         {
             //open open and save dialogs
@@ -834,7 +841,8 @@ namespace Taz_Wanted_Modding_Tool
                 }
             }
         }
-
+        */
+        /*
         private void gcpbmp_Click(object sender, EventArgs e)
         {
             //open open and save dialogs
@@ -879,7 +887,8 @@ namespace Taz_Wanted_Modding_Tool
                 }
             }
         }
-
+        */
+        /*
         private void findoffsets_Click(object sender, EventArgs e)
         {
             //open open and save dialogs
@@ -981,6 +990,7 @@ namespace Taz_Wanted_Modding_Tool
                 }
             }
         }
+        */
         public byte[] ShuffleX32(byte[] Bitmap, int width, int height)
         {
             int Pos = 0x2AA;
@@ -1139,6 +1149,30 @@ namespace Taz_Wanted_Modding_Tool
                 Converted[(i * 2) + 1] = (byte)Palette[(Bitmap[i] % 32) + 1];
             }
             return Converted;
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                int b = 0;
+                int i = 1 / b;
+            }
+            catch (Exception ex)
+            {
+                this.statusLabel.Text = ex.Message.ToString();
+                this.statusLabel.ForeColor = System.Drawing.Color.DarkRed;
+            }
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("http://aluigi.altervista.org/quickbms.htm");
+        }
+
+        private void linkLabel2_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("http://aluigi.altervista.org/bms/blitz_games.bms");
         }
     }
 }
