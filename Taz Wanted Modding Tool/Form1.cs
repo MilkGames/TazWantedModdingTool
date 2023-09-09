@@ -17,9 +17,89 @@ namespace Taz_Wanted_Modding_Tool
         public Form1()
         {
             InitializeComponent();
-            comboBox1.SelectedIndex = 0;
-            comboBox2.SelectedIndex = 0;
+            unpackingPlatformBox.SelectedIndex = 0;
+            unpackingFileTypeBox.SelectedIndex = 0;
         }
+
+        private void unpackButton_Click(object sender, EventArgs e)
+        {
+            int    platform; // 0 - windows, 1 - ps2, 2 - xbox, 3 - gcn
+            bool   onlyList;
+            bool   separateFolder;
+            bool   onlyOneArchive;
+            bool   oneType;
+            int    fileType = 0; // 0 - bmp, 1 - gif, 2 - tga, 3 - lom, 4 - obe, 5 - ttf, 6 - wav, 7 - str+wav
+            string quickBMSPath = "\"";
+            string scriptPath = "\"";
+            string inputPath = "\"";
+            string outputPath = "\"";
+            string launchOptions = "";
+            string unpackCommand;
+
+            // preparing
+            // getting information from the form
+            switch (unpackingPlatformBox.SelectedIndex)
+            {
+                case 0: platform = 0; break;
+                case 1: platform = 1; break;
+                case 2: platform = 2; break;
+                case 3: platform = 3; break;
+            }
+
+            if (unpackingOnlyListCheck.Checked) onlyList = true;
+            else onlyList = false;
+
+            if (unpackingSeparateFolderCheck.Checked) separateFolder = true;
+            else separateFolder = false;
+
+            if (unpackingOnlyOneArchiveCheck.Checked) onlyOneArchive = true;
+            else onlyOneArchive = false;
+
+            if (unpackingOneTypeCheck.Checked)
+            {
+                oneType = true;
+                switch (unpackingFileTypeBox.SelectedIndex)
+                {
+                    case 0: fileType = 0; break; // bmp
+                    case 1: fileType = 1; break; // gif
+                    case 2: fileType = 2; break; // tga
+                    case 3: fileType = 3; break; // lom
+                    case 4: fileType = 4; break; // obe
+                    case 5: fileType = 5; break; // ttf
+                    case 6: fileType = 6; break; // wav
+                    case 7: fileType = 7; break; // str+wav
+                }
+            }
+            else oneType = false;
+
+            // getting paths
+            quickBMSPath += unpackingQuickBMSpath.Text + "\" ";
+            scriptPath += unpackingScriptPath.Text + "\" ";
+            inputPath += unpackingInputPath.Text + "\" ";
+            outputPath += unpackingOutputPath.Text + "\"";
+
+            // getting launch options
+            if (onlyList) launchOptions += "-l ";
+            if (separateFolder) launchOptions += "-d ";
+            if (oneType)
+            {
+                launchOptions += "-f ";
+                switch (fileType)
+                {
+                    case 0: launchOptions += "\"{}.bmp\" "; break;
+                    case 1: launchOptions += "\"{}.gif\" "; break;
+                    case 2: launchOptions += "\"{}.tga\" "; break;
+                    case 3: launchOptions += "\"{}.lom\" "; break;
+                    case 4: launchOptions += "\"{}.obe\" "; break;
+                    case 5: launchOptions += "\"{}.ttf\" "; break;
+                    case 6: launchOptions += "\"{}.wav\" "; break;
+                    case 7: launchOptions += "\"{}.str;{}.wav\" "; break;
+                }
+            }
+            unpackCommand = quickBMSPath + launchOptions + scriptPath + inputPath + outputPath;
+            statusLabel.Text = unpackCommand;
+        }
+
         /*
         private void convertBmp_Click(object sender, EventArgs e)
         {
@@ -92,8 +172,7 @@ namespace Taz_Wanted_Modding_Tool
                         byte temp = convertedData[i];
                         convertedData[i] = convertedData[i+1];
                         convertedData[i + 1] = temp;
-                    }
-                    * / // non-important piece of code
+                    * / //
                     //add parts
                     int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
                     byte[] convertedFile = new byte[length];
@@ -448,64 +527,64 @@ namespace Taz_Wanted_Modding_Tool
                         }
                     }
                     */
-                    /*
-                    //flip words
-                    for (int i = 0; i < convertedData.Length; i+=2)
-                    {
-                        byte temp = convertedData[i];
-                        convertedData[i] = convertedData[i+1];
-                        convertedData[i + 1] = temp;
-                    }
-                    //add * / in the future
-                    //add parts
-                    int length = tgaHeader.Length + rawData.Length + tgaFooter.Length;
-                    byte[] convertedFile = new byte[length];
-                    tgaHeader.CopyTo(convertedFile, 0);
-                    rawData.CopyTo(convertedFile, tgaHeader.Length);
-                    tgaFooter.CopyTo(convertedFile, tgaHeader.Length + rawData.Length);
-
-                    //save file with new name
-                    string newname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileName(fileName)/* + ".tga"*/ // ; missed
-                    /* File.WriteAllBytes(newname, convertedFile); uncomment if needed
-                }
-            }
-        }
         /*
-        private void convertWav_Click(object sender, EventArgs e)
+        //flip words
+        for (int i = 0; i < convertedData.Length; i+=2)
         {
-            //open open and save dialogs
-            if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogResult.OK)
-            {
-
-                //temp file (.raw in end is required for sox)
-                string tempfile = Path.GetDirectoryName(saveFile.FileName) + "\\" + "stream.raw";
-
-                foreach (String fileName in openFile.FileNames)
-                {
-                    //open file
-                    byte[] gameFile = File.ReadAllBytes(fileName);
-                    byte[] rawStream = new byte[gameFile.Length - 32];
-                    Array.Copy(gameFile, 16, rawStream, 0, rawStream.Length);
-                    //create temp file
-                    File.WriteAllBytes(tempfile, rawStream);
-
-                    //get rate
-                    UInt32 BitRate = BitConverter.ToUInt32(gameFile, 4);
-
-                    //SoX
-                    ProcessStartInfo SoxInfo = new ProcessStartInfo(SoXpath.Text);
-                    SoxInfo.Arguments = "-r " + BitRate.ToString() + " -e signed-integer -b 16 -c 1 " + "\"" + tempfile + "\"" + " " + "\"" + Path.Combine(Path.GetDirectoryName(saveFile.FileName), Path.GetFileName(fileName)) + "\"";
-                    SoxInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                    var SoxProc = Process.Start(SoxInfo);
-
-                    //Wait
-                    SoxProc.WaitForExit();
-
-                }
-                File.Delete(tempfile);
-            }
+            byte temp = convertedData[i];
+            convertedData[i] = convertedData[i+1];
+            convertedData[i + 1] = temp;
         }
-        */
+        //add * / in the future
+        //add parts
+        int length = tgaHeader.Length + rawData.Length + tgaFooter.Length;
+        byte[] convertedFile = new byte[length];
+        tgaHeader.CopyTo(convertedFile, 0);
+        rawData.CopyTo(convertedFile, tgaHeader.Length);
+        tgaFooter.CopyTo(convertedFile, tgaHeader.Length + rawData.Length);
+
+        //save file with new name
+        string newname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileName(fileName)/* + ".tga"*/ // ; missed
+        /* File.WriteAllBytes(newname, convertedFile); uncomment if needed
+    }
+}
+}
+/*
+private void convertWav_Click(object sender, EventArgs e)
+{
+//open open and save dialogs
+if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogResult.OK)
+{
+
+    //temp file (.raw in end is required for sox)
+    string tempfile = Path.GetDirectoryName(saveFile.FileName) + "\\" + "stream.raw";
+
+    foreach (String fileName in openFile.FileNames)
+    {
+        //open file
+        byte[] gameFile = File.ReadAllBytes(fileName);
+        byte[] rawStream = new byte[gameFile.Length - 32];
+        Array.Copy(gameFile, 16, rawStream, 0, rawStream.Length);
+        //create temp file
+        File.WriteAllBytes(tempfile, rawStream);
+
+        //get rate
+        UInt32 BitRate = BitConverter.ToUInt32(gameFile, 4);
+
+        //SoX
+        ProcessStartInfo SoxInfo = new ProcessStartInfo(SoXpath.Text);
+        SoxInfo.Arguments = "-r " + BitRate.ToString() + " -e signed-integer -b 16 -c 1 " + "\"" + tempfile + "\"" + " " + "\"" + Path.Combine(Path.GetDirectoryName(saveFile.FileName), Path.GetFileName(fileName)) + "\"";
+        SoxInfo.WindowStyle = ProcessWindowStyle.Hidden;
+        var SoxProc = Process.Start(SoxInfo);
+
+        //Wait
+        SoxProc.WaitForExit();
+
+    }
+    File.Delete(tempfile);
+}
+}
+*/
         /*
         private void ps2bmp_Click(object sender, EventArgs e)
         {
@@ -1149,20 +1228,6 @@ namespace Taz_Wanted_Modding_Tool
                 Converted[(i * 2) + 1] = (byte)Palette[(Bitmap[i] % 32) + 1];
             }
             return Converted;
-        }
-
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                int b = 0;
-                int i = 1 / b;
-            }
-            catch (Exception ex)
-            {
-                this.statusLabel.Text = ex.Message.ToString();
-                this.statusLabel.ForeColor = System.Drawing.Color.DarkRed;
-            }
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)

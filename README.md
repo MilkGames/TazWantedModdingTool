@@ -6,7 +6,7 @@ This software is designed for decrypting and (in the future) unpacking & encrypt
 Planned:
 - ~~Adding automation for decrypting bmps and gifs.~~
 - Adding a basic interface for unpacking, decrypting, encrypting and for different platforms (Windows, PS2, Xbox, GCN).
-- Adding quickbms directly to the program and automate the collection of output files.
+- Adding automation for unpacking.
 - Adding SoX/VGMToolbox to support decryption of sounds and music within the application.
 - Adding decrypting of text files directly in the application.
-- Adding texture decrypting from PS2, Xbox and GCN.
+- Adding texture decrypting for PS2, Xbox and GCN.
