@@ -43,6 +43,7 @@
             this.label2 = new System.Windows.Forms.Label();
             this.unpackingFileTypeBox = new System.Windows.Forms.ComboBox();
             this.tableLayoutPanel5 = new System.Windows.Forms.TableLayoutPanel();
+            this.unpackingOnlyOneArchiveCheck = new System.Windows.Forms.CheckBox();
             this.unpackingOnlyListCheck = new System.Windows.Forms.CheckBox();
             this.unpackingSeparateFolderCheck = new System.Windows.Forms.CheckBox();
             this.tableLayoutPanel6 = new System.Windows.Forms.TableLayoutPanel();
@@ -76,7 +77,6 @@
             this.tabAbout = new System.Windows.Forms.TabPage();
             this.label10 = new System.Windows.Forms.Label();
             this.statusLabel = new System.Windows.Forms.Label();
-            this.unpackingOnlyOneArchiveCheck = new System.Windows.Forms.CheckBox();
             this.tabPages.SuspendLayout();
             this.tabUnpacking.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -307,6 +307,17 @@
             this.tableLayoutPanel5.Size = new System.Drawing.Size(226, 96);
             this.tableLayoutPanel5.TabIndex = 3;
             // 
+            // unpackingOnlyOneArchiveCheck
+            // 
+            this.unpackingOnlyOneArchiveCheck.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.unpackingOnlyOneArchiveCheck.AutoSize = true;
+            this.unpackingOnlyOneArchiveCheck.Location = new System.Drawing.Point(3, 71);
+            this.unpackingOnlyOneArchiveCheck.Name = "unpackingOnlyOneArchiveCheck";
+            this.unpackingOnlyOneArchiveCheck.Size = new System.Drawing.Size(145, 17);
+            this.unpackingOnlyOneArchiveCheck.TabIndex = 4;
+            this.unpackingOnlyOneArchiveCheck.Text = "Unpack only one archive";
+            this.unpackingOnlyOneArchiveCheck.UseVisualStyleBackColor = true;
+            // 
             // unpackingOnlyListCheck
             // 
             this.unpackingOnlyListCheck.Anchor = System.Windows.Forms.AnchorStyles.Left;
@@ -416,7 +427,7 @@
             this.unpackingQuickBMSpath.Name = "unpackingQuickBMSpath";
             this.unpackingQuickBMSpath.Size = new System.Drawing.Size(488, 20);
             this.unpackingQuickBMSpath.TabIndex = 1;
-            this.unpackingQuickBMSpath.Text = "C:/TazWantedPacks/quickbms.exe";
+            this.unpackingQuickBMSpath.Text = "E:\\Taz Wanted Decrypting\\quickbms.exe";
             // 
             // label11
             // 
@@ -436,6 +447,7 @@
             this.unpackingQuickBMSPathButton.TabIndex = 3;
             this.unpackingQuickBMSPathButton.Text = "Select";
             this.unpackingQuickBMSPathButton.UseVisualStyleBackColor = true;
+            this.unpackingQuickBMSPathButton.Click += new System.EventHandler(this.unpackingQuickBMSPathButton_Click);
             // 
             // tableLayoutPanel8
             // 
@@ -474,7 +486,7 @@
             this.unpackingScriptPath.Name = "unpackingScriptPath";
             this.unpackingScriptPath.Size = new System.Drawing.Size(488, 20);
             this.unpackingScriptPath.TabIndex = 1;
-            this.unpackingScriptPath.Text = "C:/TazWantedPacks/blitz_games.bms";
+            this.unpackingScriptPath.Text = "E:\\Taz Wanted Decrypting\\blitz_games.bms";
             // 
             // label12
             // 
@@ -494,6 +506,7 @@
             this.unpackingScriptPathButton.TabIndex = 4;
             this.unpackingScriptPathButton.Text = "Select";
             this.unpackingScriptPathButton.UseVisualStyleBackColor = true;
+            this.unpackingScriptPathButton.Click += new System.EventHandler(this.unpackingScriptPathButton_Click);
             // 
             // tableLayoutPanel9
             // 
@@ -530,7 +543,7 @@
             this.unpackingOutputPath.Name = "unpackingOutputPath";
             this.unpackingOutputPath.Size = new System.Drawing.Size(488, 20);
             this.unpackingOutputPath.TabIndex = 1;
-            this.unpackingOutputPath.Text = "C:/TazWantedPacks/UNPACK";
+            this.unpackingOutputPath.Text = "E:\\Taz Wanted Decrypting\\UNPACK";
             // 
             // label14
             // 
@@ -550,6 +563,7 @@
             this.unpackingOutputPathButton.TabIndex = 6;
             this.unpackingOutputPathButton.Text = "Select";
             this.unpackingOutputPathButton.UseVisualStyleBackColor = true;
+            this.unpackingOutputPathButton.Click += new System.EventHandler(this.unpackingOutputPathButton_Click);
             // 
             // tableLayoutPanel10
             // 
@@ -577,6 +591,7 @@
             this.unpackingInputPathButton.TabIndex = 5;
             this.unpackingInputPathButton.Text = "Select";
             this.unpackingInputPathButton.UseVisualStyleBackColor = true;
+            this.unpackingInputPathButton.Click += new System.EventHandler(this.unpackingInputPathButton_Click);
             // 
             // label13
             // 
@@ -595,7 +610,7 @@
             this.unpackingInputPath.Name = "unpackingInputPath";
             this.unpackingInputPath.Size = new System.Drawing.Size(488, 20);
             this.unpackingInputPath.TabIndex = 2;
-            this.unpackingInputPath.Text = "C:/TazWantedPacks/zoohub.pc";
+            this.unpackingInputPath.Text = "E:\\Taz Wanted Decrypting";
             // 
             // label7
             // 
@@ -673,17 +688,6 @@
             this.statusLabel.Size = new System.Drawing.Size(164, 13);
             this.statusLabel.TabIndex = 2;
             this.statusLabel.Text = "Everything seems to be in order...";
-            // 
-            // unpackingOnlyOneArchiveCheck
-            // 
-            this.unpackingOnlyOneArchiveCheck.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.unpackingOnlyOneArchiveCheck.AutoSize = true;
-            this.unpackingOnlyOneArchiveCheck.Location = new System.Drawing.Point(3, 71);
-            this.unpackingOnlyOneArchiveCheck.Name = "unpackingOnlyOneArchiveCheck";
-            this.unpackingOnlyOneArchiveCheck.Size = new System.Drawing.Size(145, 17);
-            this.unpackingOnlyOneArchiveCheck.TabIndex = 4;
-            this.unpackingOnlyOneArchiveCheck.Text = "Unpack only one archive";
-            this.unpackingOnlyOneArchiveCheck.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 

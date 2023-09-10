@@ -23,7 +23,7 @@ namespace Taz_Wanted_Modding_Tool
 
         private void unpackButton_Click(object sender, EventArgs e)
         {
-            int    platform; // 0 - windows, 1 - ps2, 2 - xbox, 3 - gcn
+            int    platform = 0; // 0 - windows, 1 - ps2, 2 - xbox, 3 - gcn
             bool   onlyList;
             bool   separateFolder;
             bool   onlyOneArchive;
@@ -40,10 +40,10 @@ namespace Taz_Wanted_Modding_Tool
             // getting information from the form
             switch (unpackingPlatformBox.SelectedIndex)
             {
-                case 0: platform = 0; break;
-                case 1: platform = 1; break;
-                case 2: platform = 2; break;
-                case 3: platform = 3; break;
+                case 0: platform = 0; break; // windows
+                case 1: platform = 1; break; // ps2
+                case 2: platform = 2; break; // xbox
+                case 3: platform = 3; break; // gcn
             }
 
             if (unpackingOnlyListCheck.Checked) onlyList = true;
@@ -75,7 +75,18 @@ namespace Taz_Wanted_Modding_Tool
             // getting paths
             quickBMSPath += unpackingQuickBMSpath.Text + "\" ";
             scriptPath += unpackingScriptPath.Text + "\" ";
-            inputPath += unpackingInputPath.Text + "\" ";
+            inputPath += unpackingInputPath.Text;
+            if (!onlyOneArchive)
+            {
+                switch (platform)
+                {
+                    case 0: inputPath += "\\{}.pc\" "; break;
+                    case 1: inputPath += "\\{}.ps2\" "; break;
+                    case 2: inputPath += "\\{}.xbp\" "; break;
+                    case 3: inputPath += "\\{}.gcp\" "; break;
+                }
+            }
+            else inputPath += "\" ";
             outputPath += unpackingOutputPath.Text + "\"";
 
             // getting launch options
@@ -96,8 +107,14 @@ namespace Taz_Wanted_Modding_Tool
                     case 7: launchOptions += "\"{}.str;{}.wav\" "; break;
                 }
             }
-            unpackCommand = quickBMSPath + launchOptions + scriptPath + inputPath + outputPath;
+            
+            // unpacking
+            unpackCommand = " /K "+ "\"" + quickBMSPath + "-. " + launchOptions + scriptPath + inputPath + outputPath + "\"";
+            // it feels like quickbms doesn't care about outputPath if I unpack only one archive
+            // and i also include -. because it'll terminate the script if you unpack multiple
+            // archives and choose to unpack only one type of files
             statusLabel.Text = unpackCommand;
+            Process.Start("cmd.exe", unpackCommand);
         }
 
         /*
@@ -1238,6 +1255,57 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
         private void linkLabel2_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             System.Diagnostics.Process.Start("http://aluigi.altervista.org/bms/blitz_games.bms");
+        }
+
+        private void unpackingQuickBMSPathButton_Click(object sender, EventArgs e)
+        {
+            var path = new OpenFileDialog();
+            if (path.ShowDialog() == DialogResult.OK)
+            {
+                unpackingQuickBMSpath.Text = path.FileName;
+            }
+        }
+
+        private void unpackingScriptPathButton_Click(object sender, EventArgs e)
+        {
+            var path = new OpenFileDialog();
+            if (path.ShowDialog() == DialogResult.OK)
+            {
+                unpackingScriptPath.Text = path.FileName;
+            }
+        }
+
+        private void unpackingInputPathButton_Click(object sender, EventArgs e)
+        {
+            string message = "Select file or folder? Yes - file, No - folder";
+            string title = "Input path";
+            MessageBoxButtons buttons = MessageBoxButtons.YesNo;
+            DialogResult result = MessageBox.Show(message, title, buttons);
+            if (result == DialogResult.Yes)
+            {
+                var path = new OpenFileDialog();
+                if (path.ShowDialog() == DialogResult.OK)
+                {
+                    unpackingInputPath.Text = path.FileName;
+                }
+            }
+            else
+            {
+                var path = new FolderBrowserDialog();
+                if (path.ShowDialog() == DialogResult.OK)
+                {
+                    unpackingInputPath.Text = path.SelectedPath;
+                }
+            }
+        }
+
+        private void unpackingOutputPathButton_Click(object sender, EventArgs e)
+        {
+            var path = new FolderBrowserDialog();
+            if (path.ShowDialog() == DialogResult.OK)
+            {
+                unpackingOutputPath.Text = path.SelectedPath;
+            }
         }
     }
 }
