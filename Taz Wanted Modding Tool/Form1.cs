@@ -117,13 +117,19 @@ namespace Taz_Wanted_Modding_Tool
             Process.Start("cmd.exe", unpackCommand);
         }
 
-        /*
-        private void convertBmp_Click(object sender, EventArgs e)
+        private void decryptButton_Click(object sender, EventArgs e)
         {
-            //open and save dialogs
-            if (openFile.ShowDialog() == DialogResult.OK)
+            int    platform = 0; // 0 - windows, 1 - ps2, 2 - xbox, 3 - gcn
+            bool   searchInsideOtherFolders; // allow searching inside sub-folders lmao
+            int    fileType = 0; // 0 - bmp, 1 - gif, 2 - tga, 3 - lom, 4 - obe, 5 - ttf, 6 - wav, 7 - str+wav
+            string inputPath = "";
+            string outputPath = "";
+            if (0 == 0) // fileType = 0 in the future
             {
-                foreach (String fileName in openFile.FileNames)
+                //i'll change it later, i don't have time for it now sadge
+                string filesPath = decryptingInputPath.Text;
+                IEnumerable<string> allfiles = Directory.EnumerateFiles(filesPath, "*.bmp", SearchOption.AllDirectories);
+                foreach (String fileName in allfiles)
                 {
                     //open file
                     byte[] gameFile = File.ReadAllBytes(fileName);
@@ -134,8 +140,6 @@ namespace Taz_Wanted_Modding_Tool
                         0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
                         0x00, 0x00
                     };
-
-
 
                     //copy sizes to header
                     byte[] bmpHeaderWidthHeight = new byte[8];
@@ -189,8 +193,9 @@ namespace Taz_Wanted_Modding_Tool
                         byte temp = convertedData[i];
                         convertedData[i] = convertedData[i+1];
                         convertedData[i + 1] = temp;
-                    * / //
-                    //add parts
+                    }
+                    */ // non-important piece of code
+                       //add parts
                     int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
                     byte[] convertedFile = new byte[length];
                     bmpHeaderStart.CopyTo(convertedFile, 0);
@@ -198,95 +203,11 @@ namespace Taz_Wanted_Modding_Tool
                     bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
                     convertedData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
 
-                    //save file with new name
                     File.WriteAllBytes(fileName, convertedFile);
                 }
             }
         }
-        */
-        /*
-        private void convertAllBmps_Click(object sender, EventArgs e)
-        {
-            string filesPath = allFilesPath.Text;
-            IEnumerable<string> allfiles = Directory.EnumerateFiles(filesPath, "*.bmp", SearchOption.AllDirectories);
-            foreach (String fileName in allfiles)
-            {
-                //open file
-                byte[] gameFile = File.ReadAllBytes(fileName);
-
-                //header parts
-                byte[] bmpHeaderStart = {
-                        0x42, 0x4d, 0x46, 0x20, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
-                        0x00, 0x00
-                    };
-
-                //copy sizes to header
-                byte[] bmpHeaderWidthHeight = new byte[8];
-                for (int i = 0; i < 8; i++)
-                {
-                    bmpHeaderWidthHeight[i] = gameFile[i];
-                }
-
-                byte[] bmpHeaderEnd = {
-                                    0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
-                        0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x13, 0x0b,
-                        0x00, 0x00, 0x13, 0x0b, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c,
-                        0x00, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x1f, 0x00,
-                        0x00, 0x00, 0x00, 0x80, 0x00, 0x00
-                    };
-
-                //cut data without header and trash at end
-                //1 pixel = 2 bytes
-                int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
-                int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
-
-                byte[] rawData = new byte[width * height];
-                for (int i = 0; i < rawData.Length; i++)
-                {
-                    rawData[i] = gameFile[i + 32];
-                }
-
-                //flip data
-                byte[] convertedData = new byte[rawData.Length];
-                for (int i = 0; i < convertedData.Length; i++)
-                {
-                    convertedData[i] = rawData[rawData.Length - 1 - i];
-                }
-
-                //flip strings + flip words
-                for (int i = 0; i < height; i++)
-                {
-                    int start = i * width;
-                    for (int j = 0; j < width / 2; j++)
-                    {
-                        byte temp = convertedData[start + j];
-                        convertedData[start + j] = convertedData[start + width - j - 1];
-                        convertedData[start + width - j - 1] = temp;
-                    }
-                }
-                /*
-                //flip words
-                for (int i = 0; i < convertedData.Length; i+=2)
-                {
-                    byte temp = convertedData[i];
-                    convertedData[i] = convertedData[i+1];
-                    convertedData[i + 1] = temp;
-                }
-                * / // non-important piece of code
-                //add parts
-                int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
-                byte[] convertedFile = new byte[length];
-                bmpHeaderStart.CopyTo(convertedFile, 0);
-                bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
-                bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
-                convertedData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
-
-                File.WriteAllBytes(fileName, convertedFile);
-            }
-        }
-        */
+        
         /*
         private void convertGif_Click(object sender, EventArgs e)
         {
