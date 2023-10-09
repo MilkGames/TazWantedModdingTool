@@ -19,21 +19,23 @@ namespace Taz_Wanted_Modding_Tool
             InitializeComponent();
             unpackingPlatformBox.SelectedIndex = 0;
             unpackingFileTypeBox.SelectedIndex = 0;
+            decryptingPlatformBox.SelectedIndex = 0;
+            decryptingFileTypeBox.SelectedIndex = 0;
         }
 
         private void unpackButton_Click(object sender, EventArgs e)
         {
-            int    platform = 0; // 0 - windows, 1 - ps2, 2 - xbox, 3 - gcn
+            int    platform        = 0; // 0 - windows (default), 1 - ps2, 2 - xbox, 3 - gcn
             bool   onlyList;
             bool   separateFolder;
             bool   onlyOneArchive;
             bool   oneType;
-            int    fileType = 0; // 0 - bmp, 1 - gif, 2 - tga, 3 - lom, 4 - obe, 5 - ttf, 6 - wav, 7 - str+wav
-            string quickBMSPath = "\"";
-            string scriptPath = "\"";
-            string inputPath = "\"";
-            string outputPath = "\"";
-            string launchOptions = "";
+            int    fileType        = 0; // 0 - bmp (default), 1 - gif, 2 - tga, 3 - lom, 4 - obe, 5 - ttf, 6 - wav, 7 - str+wav
+            string quickBMSPath    = "\"";
+            string scriptPath      = "\"";
+            string inputPath       = "\"";
+            string outputPath      = "\"";
+            string launchOptions   = "";
             string unpackCommand;
 
             // preparing
@@ -80,10 +82,10 @@ namespace Taz_Wanted_Modding_Tool
             {
                 switch (platform)
                 {
-                    case 0: inputPath += "\\{}.pc\" "; break;
-                    case 1: inputPath += "\\{}.ps2\" "; break;
-                    case 2: inputPath += "\\{}.xbp\" "; break;
-                    case 3: inputPath += "\\{}.gcp\" "; break;
+                    case 0: inputPath += "\\*.pc\" "; break;
+                    case 1: inputPath += "\\*.ps2\" "; break;
+                    case 2: inputPath += "\\*.xbp\" "; break;
+                    case 3: inputPath += "\\*.gcp\" "; break;
                 }
             }
             else inputPath += "\" ";
@@ -97,14 +99,14 @@ namespace Taz_Wanted_Modding_Tool
                 launchOptions += "-f ";
                 switch (fileType)
                 {
-                    case 0: launchOptions += "\"{}.bmp\" "; break;
-                    case 1: launchOptions += "\"{}.gif\" "; break;
-                    case 2: launchOptions += "\"{}.tga\" "; break;
-                    case 3: launchOptions += "\"{}.lom\" "; break;
-                    case 4: launchOptions += "\"{}.obe\" "; break;
-                    case 5: launchOptions += "\"{}.ttf\" "; break;
-                    case 6: launchOptions += "\"{}.wav\" "; break;
-                    case 7: launchOptions += "\"{}.str;{}.wav\" "; break;
+                    case 0: launchOptions += "\"*.bmp\" "; break;
+                    case 1: launchOptions += "\"*.gif\" "; break;
+                    case 2: launchOptions += "\"*.tga\" "; break;
+                    case 3: launchOptions += "\"*.lom\" "; break;
+                    case 4: launchOptions += "\"*.obe\" "; break;
+                    case 5: launchOptions += "\"*.ttf\" "; break;
+                    case 6: launchOptions += "\"*.wav\" "; break;
+                    case 7: launchOptions += "\"*.str;*.wav\" "; break;
                 }
             }
             
@@ -113,42 +115,139 @@ namespace Taz_Wanted_Modding_Tool
             // it feels like quickbms doesn't care about outputPath if I unpack only one archive
             // and i also include -. because it'll terminate the script if you unpack multiple
             // archives and choose to unpack only one type of files
-            statusLabel.Text = unpackCommand;
+            //statusLabel.Text = unpackCommand;
             Process.Start("cmd.exe", unpackCommand);
         }
 
         private void decryptButton_Click(object sender, EventArgs e)
         {
-            int    platform = 0; // 0 - windows, 1 - ps2, 2 - xbox, 3 - gcn
-            bool   searchInsideOtherFolders; // allow searching inside sub-folders lmao
-            int    fileType = 0; // 0 - bmp, 1 - gif, 2 - tga, 3 - lom, 4 - obe, 5 - ttf, 6 - wav, 7 - str+wav
-            string inputPath = "";
-            string outputPath = "";
-            if (0 == 0) // fileType = 0 in the future
-            {
-                //i'll change it later, i don't have time for it now sadge
-                string filesPath = decryptingInputPath.Text;
-                IEnumerable<string> allfiles = Directory.EnumerateFiles(filesPath, "*.bmp", SearchOption.AllDirectories);
-                foreach (String fileName in allfiles)
-                {
-                    //open file
-                    byte[] gameFile = File.ReadAllBytes(fileName);
+            int platform = 0; // 0 - windows, 1 - ps2, 2 - xbox, 3 - gcn
+            int fileType = 0; // 0 - bmp, 1 - gif, 2 - tga, 3 - obe, 4 - ttf, 5 - wav, 6 - str+wav
 
-                    //header parts
-                    byte[] bmpHeaderStart = {
+            // getting information
+            switch (decryptingPlatformBox.SelectedIndex)
+            {
+                case 0: platform = 0; break; // windows
+                case 1: platform = 1; break; // ps2
+                case 2: platform = 2; break; // xbox
+                case 3: platform = 3; break; // gcn
+            }
+
+            switch (decryptingFileTypeBox.SelectedIndex)
+            {
+                case 0: fileType = 0; break; // bmp
+                case 1: fileType = 1; break; // gif
+                case 2: fileType = 2; break; // tga
+                case 3: fileType = 3; break; // obe
+                case 4: fileType = 4; break; // ttf
+                case 5: fileType = 5; break; // wav
+                case 6: fileType = 6; break; // str+wav
+            }
+
+            // decrypting
+            switch (platform)
+            {
+                case 0: // windows
+                    switch (fileType)
+                    {
+                        case 0: // bmp
+                            decryptWindowsBMP();
+                            break;
+                        case 6: // str+wav
+                            decryptWindowsMusic();
+                            break;
+                    }
+                    break;
+                case 1: // ps2
+                    switch (fileType)
+                    {
+                        case 0:
+                            break;
+                    }
+                    break;
+                case 2: // xbox
+                    switch (fileType)
+                    {
+                        case 0:
+                            break;
+                    }
+                    break;
+                case 3: // gcn
+                    switch (fileType)
+                    {
+                        case 0:
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        private void decryptWindowsBMP()
+        {
+            bool                allowSubFolders;
+            bool                earlyBuilds;
+            bool                onlyOneFile;
+            bool                replaceFiles;
+            bool                outputPathExists;
+            int                 headerSkip; // 20 for MS10 & earlier, 32 for MS10 & older
+            IEnumerable<string> allfiles;
+            string              outputPath = "";
+
+            // getting information
+            if (decryptingSearchInSubfoldersCheck.Checked) allowSubFolders = true;
+            else allowSubFolders = false;
+
+            if (decryptingWindowsEarlyBuildsCheck.Checked) earlyBuilds = true;
+            else earlyBuilds = false;
+
+            if (decryptingReplaceOriginalFilesCheck.Checked) replaceFiles = true;
+            else replaceFiles = false;
+
+            if (decryptingOnlyOneFileCheck.Checked) onlyOneFile = true;
+            else onlyOneFile = false;
+
+            if (decryptingOutputPathCheck.Checked) outputPathExists = true;
+            else outputPathExists = false;
+
+            // preparing
+            string filesPath = decryptingInputPath.Text;
+            if (onlyOneFile)
+            {
+                allfiles = new string[] {filesPath};
+                // I'm not sure if it'll work as I planned, but it's much easier than creating a template
+            }
+            else
+            {
+                if (allowSubFolders) allfiles = Directory.EnumerateFiles(filesPath, "*.bmp", SearchOption.AllDirectories);
+                else allfiles = Directory.EnumerateFiles(filesPath, "*.bmp", SearchOption.TopDirectoryOnly);
+            }
+
+            if (earlyBuilds) headerSkip = 20;
+            else headerSkip = 32;
+
+            if (outputPathExists) outputPath = decryptingOutputPath.Text;
+
+            //decrypting
+            foreach (String fileName in allfiles)
+            {
+                //open file
+                byte[] gameFile = File.ReadAllBytes(fileName);
+
+                //header parts
+                byte[] bmpHeaderStart = {
                         0x42, 0x4d, 0x46, 0x20, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
                         0x00, 0x00
                     };
 
-                    //copy sizes to header
-                    byte[] bmpHeaderWidthHeight = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                    {
-                        bmpHeaderWidthHeight[i] = gameFile[i];
-                    }
+                //copy sizes to header
+                byte[] bmpHeaderWidthHeight = new byte[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    bmpHeaderWidthHeight[i] = gameFile[i];
+                }
 
-                    byte[] bmpHeaderEnd = {
+                byte[] bmpHeaderEnd = {
                                     0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
                         0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x13, 0x0b,
                         0x00, 0x00, 0x13, 0x0b, 0x00, 0x00, 0x00, 0x00,
@@ -157,57 +256,69 @@ namespace Taz_Wanted_Modding_Tool
                         0x00, 0x00, 0x00, 0x80, 0x00, 0x00
                     };
 
-                    //cut data without header and trash at end
-                    //1 pixel = 2 bytes
-                    int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
-                    int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
+                //cut data without header and trash at end
+                //1 pixel = 2 bytes
+                int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
+                int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
 
-                    byte[] rawData = new byte[width * height];
-                    for (int i = 0; i < rawData.Length; i++)
-                    {
-                        rawData[i] = gameFile[i + 32];
-                    }
+                byte[] rawData = new byte[width * height];
+                for (int i = 0; i < rawData.Length; i++)
+                {
+                    rawData[i] = gameFile[i + headerSkip];
+                }
 
-                    //flip data
-                    byte[] convertedData = new byte[rawData.Length];
-                    for (int i = 0; i < convertedData.Length; i++)
-                    {
-                        convertedData[i] = rawData[rawData.Length - 1 - i];
-                    }
+                //flip data
+                byte[] convertedData = new byte[rawData.Length];
+                for (int i = 0; i < convertedData.Length; i++)
+                {
+                    convertedData[i] = rawData[rawData.Length - 1 - i];
+                }
 
-                    //flip strings + flip words
-                    for (int i = 0; i < height; i++)
+                //flip strings + flip words
+                for (int i = 0; i < height; i++)
+                {
+                    int start = i * width;
+                    for (int j = 0; j < width / 2; j++)
                     {
-                        int start = i * width;
-                        for (int j = 0; j < width / 2; j++)
-                        {
-                            byte temp = convertedData[start + j];
-                            convertedData[start + j] = convertedData[start + width - j - 1];
-                            convertedData[start + width - j - 1] = temp;
-                        }
+                        byte temp = convertedData[start + j];
+                        convertedData[start + j] = convertedData[start + width - j - 1];
+                        convertedData[start + width - j - 1] = temp;
                     }
-                    /*
-                    //flip words
-                    for (int i = 0; i < convertedData.Length; i+=2)
-                    {
-                        byte temp = convertedData[i];
-                        convertedData[i] = convertedData[i+1];
-                        convertedData[i + 1] = temp;
-                    }
-                    */ // non-important piece of code
-                       //add parts
-                    int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
-                    byte[] convertedFile = new byte[length];
-                    bmpHeaderStart.CopyTo(convertedFile, 0);
-                    bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
-                    bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
-                    convertedData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
+                }
+                /*
+                //flip words
+                for (int i = 0; i < convertedData.Length; i+=2)
+                {
+                    byte temp = convertedData[i];
+                    convertedData[i] = convertedData[i+1];
+                    convertedData[i + 1] = temp;
+                }
+                */ // non-important piece of code
+                   //add parts
+                int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + convertedData.Length;
+                byte[] convertedFile = new byte[length];
+                bmpHeaderStart.CopyTo(convertedFile, 0);
+                bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
+                bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
+                convertedData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
 
-                    File.WriteAllBytes(fileName, convertedFile);
+                if (outputPathExists)
+                {
+                    string newFilePath = outputPath + "\\" + Path.GetFileName(fileName);
+                    File.WriteAllBytes(newFilePath, convertedFile);
+                }
+                else
+                {
+                    if (replaceFiles) File.WriteAllBytes(fileName, convertedFile);
+                    else File.WriteAllBytes(fileName + ".bmp", convertedFile);
                 }
             }
         }
-        
+
+        private void decryptWindowsMusic()
+        {
+
+        }
         /*
         private void convertGif_Click(object sender, EventArgs e)
         {
@@ -787,6 +898,7 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
             }
             return Colored;
         }
+
         public byte[] Replace(byte[] Bitmap, int width, int height)
         {
             int size = 2 * width * height;
@@ -1057,7 +1169,6 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
             return Shuffled;
         }
 
-
         public byte[] ShuffleIndexedX32(byte[] Bitmap, int width, int height)
         {
             int Pos = (0x2AA / 2);// -2;
@@ -1226,6 +1337,152 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
             if (path.ShowDialog() == DialogResult.OK)
             {
                 unpackingOutputPath.Text = path.SelectedPath;
+            }
+        }
+
+        private void unpackingOneTypeCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (unpackingOneTypeCheck.Checked)
+            {
+                unpackingFileTypeBox.Enabled = true;
+            }
+            else unpackingFileTypeBox.Enabled = false;
+        }
+
+        private void unpackingOnlyListCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!unpackingOnlyListCheck.Enabled) return;
+            if (unpackingOnlyListCheck.Checked)
+            {
+                unpackingSeparateFolderCheck.Enabled = false;
+                unpackingSeparateFolderCheck.Checked = false;
+                unpackingOnlyOneArchiveCheck.Enabled = false;
+                unpackingOnlyOneArchiveCheck.Checked = false;
+            }
+            else
+            {
+                unpackingSeparateFolderCheck.Enabled = true;
+                unpackingOnlyOneArchiveCheck.Enabled = true;
+            }
+        }
+
+        private void unpackingSeparateFolderCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!unpackingSeparateFolderCheck.Enabled) return;
+            if (unpackingSeparateFolderCheck.Checked)
+            {
+                unpackingOnlyOneArchiveCheck.Enabled = false;
+                unpackingOnlyOneArchiveCheck.Checked = false;
+                unpackingOnlyListCheck.Enabled = false;
+                unpackingOnlyListCheck.Checked = false;
+            }
+            else
+            {
+                unpackingOnlyOneArchiveCheck.Enabled = true;
+                unpackingOnlyListCheck.Enabled = true;
+            }
+        }
+
+        private void unpackingOnlyOneArchiveCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!unpackingOnlyOneArchiveCheck.Enabled) return;
+            if (unpackingOnlyOneArchiveCheck.Checked)
+            {
+                unpackingSeparateFolderCheck.Enabled = false;
+                unpackingSeparateFolderCheck.Checked = false;
+                unpackingOnlyListCheck.Enabled = false;
+                unpackingOnlyListCheck.Checked = false;
+            }
+            else
+            {
+                unpackingSeparateFolderCheck.Enabled = true;
+                unpackingOnlyListCheck.Enabled = true;
+            }
+        }
+
+        private void decryptingPlatformBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (decryptingPlatformBox.SelectedIndex)
+            {
+                case 0: // windows
+                    decryptingWindowsEarlyBuildsCheck.Visible = true;
+                    decryptButton.Enabled = true;
+                    break;
+                default:
+                    decryptingWindowsEarlyBuildsCheck.Visible = false;
+                    decryptButton.Enabled = false;
+                    break;
+            }
+        }
+
+        private void decryptingFileTypeBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (decryptingFileTypeBox.SelectedIndex)
+            {
+                case 0: // bmp
+                    decryptButton.Enabled = true;
+                    break;
+                default: 
+                    decryptButton.Enabled = false;
+                    break;
+            }
+        }
+
+        private void decryptingSearchInSubfoldersCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!decryptingSearchInSubfoldersCheck.Enabled) return;
+            if (decryptingSearchInSubfoldersCheck.Checked)
+            {
+                decryptingOnlyOneFileCheck.Enabled = false;
+                decryptingOnlyOneFileCheck.Checked = false;
+            }
+            else
+            {
+                decryptingOnlyOneFileCheck.Enabled = true;
+            }
+        }
+
+        private void decryptingOnlyOneFileCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!decryptingOnlyOneFileCheck.Enabled) return;
+            if (decryptingOnlyOneFileCheck.Checked)
+            {
+                decryptingSearchInSubfoldersCheck.Enabled = false;
+                decryptingSearchInSubfoldersCheck.Checked = false;
+            }
+            else
+            {
+                decryptingSearchInSubfoldersCheck.Enabled = true;
+            }
+        }
+
+        private void decryptingOutputPathCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!decryptingOutputPathCheck.Enabled) return;
+            if (decryptingOutputPathCheck.Checked)
+            {
+                decryptingReplaceOriginalFilesCheck.Enabled = false;
+                decryptingReplaceOriginalFilesCheck.Checked = false;
+                decryptingOutputPath.Enabled = true;
+            }
+            else
+            {
+                decryptingReplaceOriginalFilesCheck.Enabled = true;
+                decryptingOutputPath.Enabled = false;
+            }
+        }
+
+        private void decryptingReplaceOriginalFilesCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!decryptingReplaceOriginalFilesCheck.Enabled) return;
+            if (decryptingReplaceOriginalFilesCheck.Checked)
+            {
+                decryptingOutputPathCheck.Enabled = false;
+                decryptingOutputPathCheck.Checked = false;
+            }
+            else
+            {
+                decryptingOutputPathCheck.Enabled = true;
             }
         }
     }
