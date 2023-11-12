@@ -6,9 +6,12 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Taz_Wanted_Modding_Tool
 {
@@ -69,7 +72,7 @@ namespace Taz_Wanted_Modding_Tool
                     case 4: fileType = 4; break; // obe
                     case 5: fileType = 5; break; // ttf
                     case 6: fileType = 6; break; // wav
-                    case 7: fileType = 7; break; // str+wav
+                    case 7: fileType = 7; break; // str+wav or str+sth
                 }
             }
             else oneType = false;
@@ -106,7 +109,15 @@ namespace Taz_Wanted_Modding_Tool
                     case 4: launchOptions += "\"*.obe\" "; break;
                     case 5: launchOptions += "\"*.ttf\" "; break;
                     case 6: launchOptions += "\"*.wav\" "; break;
-                    case 7: launchOptions += "\"*.str;*.wav\" "; break;
+                    case 7:
+                        if (unpackingGCNMusicCheck.Checked)
+                        {
+                            launchOptions += "\"*.str;*.sth\" "; break;
+                        }
+                        else
+                        {
+                            launchOptions += "\"*.str;*.wav\" "; break;
+                        }
                 }
             }
             
@@ -117,7 +128,11 @@ namespace Taz_Wanted_Modding_Tool
             // archives and choose to unpack only one type of files
             //statusLabel.Text = unpackCommand;
             Process.Start("cmd.exe", unpackCommand);
+            statusLabel.Text = "Done! (or you're just waiting for it)";
+            statusLabel.ForeColor = System.Drawing.Color.Green;
         }
+
+        private static int currentPlatform = 0;
 
         private void decryptButton_Click(object sender, EventArgs e)
         {
@@ -125,6 +140,7 @@ namespace Taz_Wanted_Modding_Tool
             int fileType = 0; // 0 - bmp, 1 - gif, 2 - tga, 3 - obe, 4 - ttf, 5 - wav, 6 - str+wav
 
             // getting information
+            currentPlatform = decryptingPlatformBox.SelectedIndex;
             switch (decryptingPlatformBox.SelectedIndex)
             {
                 case 0: platform = 0; break; // windows
@@ -151,10 +167,12 @@ namespace Taz_Wanted_Modding_Tool
                     switch (fileType)
                     {
                         case 0: // bmp
-                            decryptWindowsBMP();
+                            var bmpThread = new Thread(decryptBMPWindows);
+                            bmpThread.Start();
                             break;
                         case 6: // str+wav
-                            decryptWindowsMusic();
+                            var musicThread = new Thread(decryptMusic);
+                            musicThread.Start();
                             break;
                     }
                     break;
@@ -170,6 +188,10 @@ namespace Taz_Wanted_Modding_Tool
                     {
                         case 0:
                             break;
+                        case 6: // wav.str + wav
+                            var musicThread = new Thread(decryptMusic);
+                            musicThread.Start();
+                            break;
                     }
                     break;
                 case 3: // gcn
@@ -177,12 +199,16 @@ namespace Taz_Wanted_Modding_Tool
                     {
                         case 0:
                             break;
+                        case 6: // .str + .wav or .str + .sth
+                            var musicThread = new Thread(decryptMusic);
+                            musicThread.Start();
+                            break;
                     }
                     break;
             }
         }
 
-        private void decryptWindowsBMP()
+        private void decryptBMPWindows()
         {
             bool                allowSubFolders;
             bool                earlyBuilds;
@@ -197,7 +223,7 @@ namespace Taz_Wanted_Modding_Tool
             if (decryptingSearchInSubfoldersCheck.Checked) allowSubFolders = true;
             else allowSubFolders = false;
 
-            if (decryptingWindowsEarlyBuildsCheck.Checked) earlyBuilds = true;
+            if (decryptingEarlyBuildsCheck.Checked) earlyBuilds = true;
             else earlyBuilds = false;
 
             if (decryptingReplaceOriginalFilesCheck.Checked) replaceFiles = true;
@@ -230,6 +256,11 @@ namespace Taz_Wanted_Modding_Tool
             //decrypting
             foreach (String fileName in allfiles)
             {
+                Invoke((MethodInvoker)delegate
+                {
+                    statusLabel.ForeColor = System.Drawing.Color.Black;
+                    statusLabel.Text = "Processing: " + fileName;
+                });
                 //open file
                 byte[] gameFile = File.ReadAllBytes(fileName);
 
@@ -313,11 +344,303 @@ namespace Taz_Wanted_Modding_Tool
                     else File.WriteAllBytes(fileName + ".bmp", convertedFile);
                 }
             }
+            Invoke((MethodInvoker)delegate
+            {
+                statusLabel.Text = "Done!";
+                statusLabel.ForeColor = System.Drawing.Color.Green;
+            });
         }
 
-        private void decryptWindowsMusic()
+        private void decryptMusic()
         {
+            bool allowSubFolders;
+            bool earlyBuilds; // B16 for windows
+            bool onlyOneFile;
+            bool replaceFiles;
+            bool separateChannels;
+            bool outputPathExists;
+            string infoFilePath;
+            byte[] infoFile;
+            int channels = 0;
+            IEnumerable<string> allfiles;
+            string vgmstreamPath = "";
+            string outputPath = "";
+            string decodeCommand = "";
+            string txtpFilePath = "";
+            string tempFilePath = "";
 
+            // getting information
+            if (decryptingSearchInSubfoldersCheck.Checked) allowSubFolders = true;
+            else allowSubFolders = false;
+
+            if (decryptingEarlyBuildsCheck.Checked) earlyBuilds = true;
+            else earlyBuilds = false;
+
+            if (decryptingReplaceOriginalFilesCheck.Checked) replaceFiles = true;
+            else replaceFiles = false;
+
+            if (decryptingOnlyOneFileCheck.Checked) onlyOneFile = true;
+            else onlyOneFile = false;
+
+            if (decryptingOutputPathCheck.Checked) outputPathExists = true;
+            else outputPathExists = false;
+
+            if (decryptingSeparateChannelsCheck.Checked) separateChannels = true;
+            else separateChannels = false;
+
+            // preparing
+            string filesPath = decryptingInputPath.Text;
+            if (onlyOneFile)
+            {
+                allfiles = new string[] { filesPath };
+                // I'm not sure if it'll work as I planned, but it's much easier than creating a template
+            }
+            else
+            {
+                if (allowSubFolders) allfiles = Directory.EnumerateFiles(filesPath, "*.str", SearchOption.AllDirectories);
+                else allfiles = Directory.EnumerateFiles(filesPath, "*.str", SearchOption.TopDirectoryOnly);
+            }
+
+            vgmstreamPath = decryptingVgmstreamPath.Text;
+            if (outputPathExists) outputPath = decryptingOutputPath.Text;
+
+            // decrypting
+            foreach (String fileName in allfiles)
+            {
+                decodeCommand = "";
+                Invoke((MethodInvoker)delegate
+                {
+                    statusLabel.ForeColor = System.Drawing.Color.Black;
+                    statusLabel.Text = "Processing: " + fileName;
+                });
+                // searching for channels
+                infoFilePath = fileName.Substring(0, fileName.Length - 4);
+                switch (currentPlatform)
+                {
+                    case 0: // windows
+                        infoFile = File.ReadAllBytes(infoFilePath);
+                        channels = infoFile[216];
+                        if (earlyBuilds) // B16
+                        {
+                            if (channels == 3) channels += 3;
+                            if (channels == 1) channels++;
+                        }
+                        break;
+                    case 1: // ps2
+                        break;
+                    case 2: // xbox
+                        infoFile = File.ReadAllBytes(infoFilePath);
+                        channels = infoFile[80];
+                        if (channels == 3) channels += 3;
+                        if (channels == 1) channels++;
+                        break;
+                    case 3: // gcn
+                        if (decryptingGCNMusicCheck.Checked) infoFilePath += ".sth"; // ntsc
+                        infoFile = File.ReadAllBytes(infoFilePath);
+                        channels = infoFile[83];
+                        if (channels == 3) channels += 3;
+                        if (channels == 1) channels++;
+                        break;
+                }
+
+                // decode music
+
+                if (!separateChannels || channels == 1 || channels == 2)
+                {
+                    // you don't need to create .txtp in this case
+                    if (outputPathExists)
+                    {
+                        decodeCommand += "-o " + "\"" + outputPath + "\\" + Path.GetFileName(infoFilePath) + "\"";
+                        decodeCommand += " -i " + "\"" + fileName + "\"";
+                        ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                        vgmstream.Arguments = decodeCommand;
+                        vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                        var vgmstreamProc = Process.Start(vgmstream);
+                        vgmstreamProc.WaitForExit();
+                    }
+                    else
+                    {
+                        if (replaceFiles)
+                        {
+                            if (currentPlatform == 3)
+                            {
+                                if (decryptingGCNMusicCheck.Checked)
+                                {
+                                    tempFilePath = infoFilePath;
+                                    tempFilePath = fileName.Substring(0, fileName.Length - 4);
+                                    decodeCommand += "-o " + "\"" + tempFilePath + "\"";
+                                }
+                                else decodeCommand += "-o " + "\"" + infoFilePath + "\"";
+                                decodeCommand += " -i " + "\"" + fileName + "\"";
+                                ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                                vgmstream.Arguments = decodeCommand;
+                                vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                                var vgmstreamProc = Process.Start(vgmstream);
+                                vgmstreamProc.WaitForExit();
+                                if (decryptingGCNMusicCheck.Checked)
+                                {
+                                    File.Delete(fileName);
+                                    File.Delete(infoFilePath);
+                                }
+                                File.Delete(fileName);
+                            }
+                            else
+                            {
+                                decodeCommand += "-o " + "\"" + infoFilePath + "\"" + " -i " + "\"" + fileName + "\"";
+                                ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                                vgmstream.Arguments = decodeCommand;
+                                vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                                var vgmstreamProc = Process.Start(vgmstream);
+                                vgmstreamProc.WaitForExit();
+                                File.Delete(fileName);
+                            }
+                        }
+                        else
+                        {
+                            decodeCommand += "-i " + "\"" + fileName + "\"";
+                            ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                            vgmstream.Arguments = decodeCommand;
+                            vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                            var vgmstreamProc = Process.Start(vgmstream);
+                            vgmstreamProc.WaitForExit();
+                        }
+                    }
+                }
+                else
+                {
+                    if (channels == 3)
+                    {
+                        for (int i = 1; i < channels + 1; i++)
+                        {
+                            decodeCommand = "";
+                            string channelNumber = "";
+                            string songNumber = "";
+                            switch (i)
+                            {
+                                case 1:
+                                    channelNumber = "1";
+                                    songNumber = " normal.wav";
+                                    break;
+                                case 2:
+                                    channelNumber = "2";
+                                    songNumber = " silent.wav";
+                                    break;
+                                case 3:
+                                    channelNumber = "3";
+                                    songNumber = " action.wav";
+                                    break;
+                            }
+                            txtpFilePath = fileName + ".txtp";
+                            using (FileStream fs = File.Create(txtpFilePath))
+                            {
+                                byte[] info = new UTF8Encoding(true).GetBytes(fileName + " #C" + channelNumber);
+                                fs.Write(info, 0, info.Length);
+                            }
+
+                            if (outputPathExists)
+                            {
+                                tempFilePath = fileName;
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath += songNumber;
+                                decodeCommand += "-o " + "\"" + outputPath + "\\" + Path.GetFileName(tempFilePath) + "\"";
+                                decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
+                                ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                                vgmstream.Arguments = decodeCommand;
+                                vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                                var vgmstreamProc = Process.Start(vgmstream);
+                                vgmstreamProc.WaitForExit();
+                            }
+                            else
+                            {
+                                tempFilePath = fileName;
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath += songNumber;
+                                decodeCommand += "-o " + "\"" + tempFilePath + "\"";
+                                decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
+                                ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                                vgmstream.Arguments = decodeCommand;
+                                vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                                var vgmstreamProc = Process.Start(vgmstream);
+                                vgmstreamProc.WaitForExit();
+                            }
+                        }
+                        if (replaceFiles)
+                        {
+                            File.Delete(infoFilePath);
+                            File.Delete(fileName);
+                        }
+                        File.Delete(txtpFilePath);
+                    }
+                    else
+                    {
+                        for (int i = 1; i < 4; i++)
+                        {
+                            decodeCommand = "";
+                            string channelNumber = "";
+                            string songNumber = "";
+                            switch (i)
+                            {
+                                case 1:
+                                    channelNumber = "1,2";
+                                    songNumber = " normal.wav";
+                                    break;
+                                case 2:
+                                    channelNumber = "3,4";
+                                    songNumber = " silent.wav";
+                                    break;
+                                case 3:
+                                    channelNumber = "5,6";
+                                    songNumber = " action.wav";
+                                    break;
+                            }
+                            txtpFilePath = fileName + ".txtp";
+                            using (FileStream fs = File.Create(txtpFilePath))
+                            {
+                                byte[] info = new UTF8Encoding(true).GetBytes(Path.GetFileName(fileName) + " #C" + channelNumber);
+                                fs.Write(info, 0, info.Length);
+                            }
+
+                            if (outputPathExists)
+                            {
+                                tempFilePath = fileName;
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath += songNumber;
+                                decodeCommand += "-o " + "\"" + outputPath + "\\" + Path.GetFileName(tempFilePath) + "\"";
+                                decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
+                                ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                                vgmstream.Arguments = decodeCommand;
+                                vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                                var vgmstreamProc = Process.Start(vgmstream);
+                                vgmstreamProc.WaitForExit();
+                            }
+                            else
+                            {
+                                tempFilePath = fileName;
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath += songNumber;
+                                decodeCommand += "-o " + "\"" + tempFilePath + "\"";
+                                decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
+                                ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
+                                vgmstream.Arguments = decodeCommand;
+                                vgmstream.WindowStyle = ProcessWindowStyle.Hidden;
+                                var vgmstreamProc = Process.Start(vgmstream);
+                                vgmstreamProc.WaitForExit();
+                            }
+                        }
+                        if (replaceFiles)
+                        {
+                            File.Delete(infoFilePath);
+                            File.Delete(fileName);
+                        }
+                        File.Delete(txtpFilePath);
+                    }
+                }
+            }
+            Invoke((MethodInvoker)delegate
+            {
+                statusLabel.Text = "Done!";
+                statusLabel.ForeColor = System.Drawing.Color.Green;
+            });
         }
         /*
         private void convertGif_Click(object sender, EventArgs e)
@@ -1289,6 +1612,44 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
             System.Diagnostics.Process.Start("http://aluigi.altervista.org/bms/blitz_games.bms");
         }
 
+        private void vgmstreamDownloadLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("https://github.com/vgmstream/vgmstream-releases/releases/download/nightly/vgmstream-win64.zip");
+        }
+
+        private void unpackingPlatformBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            unpackingFileTypeBox.SelectedIndex = 0;
+        }
+
+        private void unpackingGCNMusicCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (unpackingGCNMusicCheck.Checked)
+            {
+                if (unpackingFileTypeBox.SelectedIndex == 7)
+                {
+                    unpackingFileTypeBox.Enabled = false;
+                    unpackingFileTypeBox.SelectedIndex = 0;
+                    unpackingFileTypeBox.Items[7] = ".str + .sth (music)";
+                    unpackingFileTypeBox.Enabled = false;
+                    unpackingFileTypeBox.SelectedIndex = 7;
+                }
+                else unpackingFileTypeBox.Items[7] = ".str + .sth (music)";
+            }
+            else
+            {
+                if (unpackingFileTypeBox.SelectedIndex == 7)
+                {
+                    unpackingFileTypeBox.Enabled = false;
+                    unpackingFileTypeBox.SelectedIndex = 0;
+                    unpackingFileTypeBox.Items[7] = ".str + .wav (music)";
+                    unpackingFileTypeBox.Enabled = false;
+                    unpackingFileTypeBox.SelectedIndex = 7;
+                }
+                else unpackingFileTypeBox.Items[7] = ".str + .wav (music)";
+            }
+        }
+
         private void unpackingQuickBMSPathButton_Click(object sender, EventArgs e)
         {
             var path = new OpenFileDialog();
@@ -1349,6 +1710,28 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
             else unpackingFileTypeBox.Enabled = false;
         }
 
+        private void unpackingFileTypeBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (unpackingFileTypeBox.Enabled == false &&
+                unpackingOneTypeCheck.Checked)
+            {
+                unpackingFileTypeBox.Enabled = true;
+                return;
+            }
+            if (unpackingPlatformBox.SelectedIndex == 3 &&
+                unpackingFileTypeBox.SelectedIndex == 7)
+            {
+                unpackingGCNMusicCheck.Visible = true;
+                unpackingGCNMusicCheck.Enabled = true;
+            }
+            else
+            {
+                unpackingGCNMusicCheck.Enabled = false;
+                unpackingGCNMusicCheck.Visible = false;
+                unpackingGCNMusicCheck.Checked = false;
+            }
+        }
+
         private void unpackingOnlyListCheck_CheckedChanged(object sender, EventArgs e)
         {
             if (!unpackingOnlyListCheck.Enabled) return;
@@ -1400,30 +1783,130 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
             }
         }
 
+        private void decryptingInputPathButton_Click(object sender, EventArgs e)
+        {
+            string message = "Select file or folder? Yes - file, No - folder";
+            string title = "Input path";
+            MessageBoxButtons buttons = MessageBoxButtons.YesNo;
+            DialogResult result = MessageBox.Show(message, title, buttons);
+            if (result == DialogResult.Yes)
+            {
+                var path = new OpenFileDialog();
+                if (path.ShowDialog() == DialogResult.OK)
+                {
+                    decryptingInputPath.Text = path.FileName;
+                }
+            }
+            else
+            {
+                var path = new FolderBrowserDialog();
+                if (path.ShowDialog() == DialogResult.OK)
+                {
+                    decryptingInputPath.Text = path.SelectedPath;
+                }
+            }
+        }
+
+        private void decryptingOutputPathButton_Click(object sender, EventArgs e)
+        {
+            var path = new FolderBrowserDialog();
+            if (path.ShowDialog() == DialogResult.OK)
+            {
+                decryptingOutputPath.Text = path.SelectedPath;
+            }
+        }
+
+        private void decryptingVgmstreamPathButton_Click(object sender, EventArgs e)
+        {
+            var path = new OpenFileDialog();
+            if (path.ShowDialog() == DialogResult.OK)
+            {
+                decryptingVgmstreamPath.Text = path.FileName;
+            }
+        }
+
         private void decryptingPlatformBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            switch (decryptingPlatformBox.SelectedIndex)
-            {
-                case 0: // windows
-                    decryptingWindowsEarlyBuildsCheck.Visible = true;
-                    decryptButton.Enabled = true;
-                    break;
-                default:
-                    decryptingWindowsEarlyBuildsCheck.Visible = false;
-                    decryptButton.Enabled = false;
-                    break;
-            }
+            unpackingFileTypeBox.SelectedIndex = 0;
+            decryptingFileTypeBox_SelectedIndexChanged(sender, e);
         }
 
         private void decryptingFileTypeBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            switch (decryptingFileTypeBox.SelectedIndex)
+            if (decryptingFileTypeBox.Enabled == false)
             {
-                case 0: // bmp
-                    decryptButton.Enabled = true;
+                decryptingFileTypeBox.Enabled = true;
+                return;
+            }
+            if (decryptingPlatformBox.SelectedIndex == 3 &&
+                decryptingFileTypeBox.SelectedIndex == 6)
+            {
+                decryptingGCNMusicCheck.Visible = true;
+                decryptingGCNMusicCheck.Enabled = true;
+            }
+            else
+            {
+                decryptingGCNMusicCheck.Enabled = false;
+                decryptingGCNMusicCheck.Visible = false;
+                decryptingGCNMusicCheck.Checked = false;
+            }
+            decryptingSeparateChannelsCheck.Visible = false;
+            decryptingVgmstreamPathButton.Enabled = false;
+            decryptingVgmstreamPath.Enabled = false;
+            decryptingEarlyBuildsCheck.Visible = false;
+            decryptingEarlyBuildsCheck2.Visible = false;
+            decryptButton.Enabled = false;
+            switch (decryptingPlatformBox.SelectedIndex)
+            {
+                case 0: // windows
+                    switch (decryptingFileTypeBox.SelectedIndex)
+                    {
+                        case 0: // bmp
+                            decryptingEarlyBuildsCheck.Text = "MileStone #10 or earlier";
+                            decryptingEarlyBuildsCheck.Visible = true;
+                            decryptButton.Enabled = true;
+                            break;
+                        case 6: // .str + .wav
+                            decryptingEarlyBuildsCheck.Text = "Beta #16";
+                            decryptingEarlyBuildsCheck.Visible = true;
+                            decryptingEarlyBuildsCheck2.Visible = true;
+                            decryptingSeparateChannelsCheck.Visible = true;
+                            decryptingVgmstreamPathButton.Enabled = true;
+                            decryptingVgmstreamPath.Enabled = true;
+                            decryptButton.Enabled = true;
+                            break;
+                    }
                     break;
-                default: 
-                    decryptButton.Enabled = false;
+                case 1: // ps2
+                    switch (decryptingFileTypeBox.SelectedIndex)
+                    {
+                        case 6: // .str + .wav
+                            break;
+                    }
+                    break;
+                case 2: // xbox
+                    switch (decryptingFileTypeBox.SelectedIndex)
+                    {
+                        case 6: // .str + .wav
+                            decryptingSeparateChannelsCheck.Visible = true;
+                            decryptingVgmstreamPathButton.Enabled = true;
+                            decryptingVgmstreamPath.Enabled = true;
+                            decryptButton.Enabled = true;
+                            break;
+                    }
+                    break;
+                case 3: // gcn
+                    switch (decryptingFileTypeBox.SelectedIndex)
+                    {
+                        case 6: // .str + .sth or .str + .wav
+                            decryptingSeparateChannelsCheck.Visible = true;
+                            decryptingVgmstreamPathButton.Enabled = true;
+                            decryptingVgmstreamPath.Enabled = true;
+                            decryptingGCNMusicCheck.Visible = true;
+                            decryptingGCNMusicCheck.Enabled = true;
+                            decryptButton.Enabled = true;
+                            break;
+                    }
                     break;
             }
         }
@@ -1483,6 +1966,34 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
             else
             {
                 decryptingOutputPathCheck.Enabled = true;
+            }
+        }
+
+        private void decryptingGCNMusicCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            if (decryptingGCNMusicCheck.Checked)
+            {
+                if (decryptingFileTypeBox.SelectedIndex == 6)
+                {
+                    decryptingFileTypeBox.Enabled = false;
+                    decryptingFileTypeBox.SelectedIndex = 0;
+                    decryptingFileTypeBox.Items[6] = ".str + .sth (music)";
+                    decryptingFileTypeBox.Enabled = false;
+                    decryptingFileTypeBox.SelectedIndex = 6;
+                }
+                else decryptingFileTypeBox.Items[6] = ".str + .sth (music)";
+            }
+            else
+            {
+                if (decryptingFileTypeBox.SelectedIndex == 6)
+                {
+                    decryptingFileTypeBox.Enabled = false;
+                    decryptingFileTypeBox.SelectedIndex = 0;
+                    decryptingFileTypeBox.Items[6] = ".str + .wav (music)";
+                    decryptingFileTypeBox.Enabled = false;
+                    decryptingFileTypeBox.SelectedIndex = 6;
+                }
+                else decryptingFileTypeBox.Items[6] = ".str + .wav (music)";
             }
         }
     }
