@@ -85,6 +85,8 @@
             this.decryptingSearchInSubfoldersCheck = new System.Windows.Forms.CheckBox();
             this.decryptingReplaceOriginalFilesCheck = new System.Windows.Forms.CheckBox();
             this.tableLayoutPanel16 = new System.Windows.Forms.TableLayoutPanel();
+            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
+            this.vgmstreamDownloadLabel = new System.Windows.Forms.LinkLabel();
             this.decryptingSeparateChannelsCheck = new System.Windows.Forms.CheckBox();
             this.tableLayoutPanel17 = new System.Windows.Forms.TableLayoutPanel();
             this.decryptingFileTypeBox = new System.Windows.Forms.ComboBox();
@@ -116,8 +118,6 @@
             this.tabAbout = new System.Windows.Forms.TabPage();
             this.label10 = new System.Windows.Forms.Label();
             this.statusLabel = new System.Windows.Forms.Label();
-            this.vgmstreamDownloadLabel = new System.Windows.Forms.LinkLabel();
-            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.tabPages.SuspendLayout();
             this.tabUnpacking.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -906,6 +906,32 @@
             this.tableLayoutPanel16.Size = new System.Drawing.Size(353, 74);
             this.tableLayoutPanel16.TabIndex = 4;
             // 
+            // linkLabel1
+            // 
+            this.linkLabel1.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.linkLabel1.AutoSize = true;
+            this.linkLabel1.Enabled = false;
+            this.linkLabel1.Location = new System.Drawing.Point(3, 55);
+            this.linkLabel1.Name = "linkLabel1";
+            this.linkLabel1.Size = new System.Drawing.Size(78, 13);
+            this.linkLabel1.TabIndex = 6;
+            this.linkLabel1.TabStop = true;
+            this.linkLabel1.Text = "Download SoX";
+            this.linkLabel1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // vgmstreamDownloadLabel
+            // 
+            this.vgmstreamDownloadLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.vgmstreamDownloadLabel.AutoSize = true;
+            this.vgmstreamDownloadLabel.Location = new System.Drawing.Point(3, 30);
+            this.vgmstreamDownloadLabel.Name = "vgmstreamDownloadLabel";
+            this.vgmstreamDownloadLabel.Size = new System.Drawing.Size(109, 13);
+            this.vgmstreamDownloadLabel.TabIndex = 5;
+            this.vgmstreamDownloadLabel.TabStop = true;
+            this.vgmstreamDownloadLabel.Text = "Download vgmstream";
+            this.vgmstreamDownloadLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.vgmstreamDownloadLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.vgmstreamDownloadLabel_LinkClicked);
+            // 
             // decryptingSeparateChannelsCheck
             // 
             this.decryptingSeparateChannelsCheck.Anchor = System.Windows.Forms.AnchorStyles.Left;
@@ -1044,7 +1070,7 @@
             this.tableLayoutPanel19.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 3.685897F));
             this.tableLayoutPanel19.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 79.16666F));
             this.tableLayoutPanel19.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 23F));
-            this.tableLayoutPanel19.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 70F));
+            this.tableLayoutPanel19.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 73F));
             this.tableLayoutPanel19.Controls.Add(this.label21, 0, 0);
             this.tableLayoutPanel19.Controls.Add(this.decryptingOutputPath, 2, 0);
             this.tableLayoutPanel19.Controls.Add(this.label22, 3, 0);
@@ -1071,7 +1097,7 @@
             // 
             this.decryptingOutputPath.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.decryptingOutputPath.Enabled = false;
-            this.decryptingOutputPath.Location = new System.Drawing.Point(133, 3);
+            this.decryptingOutputPath.Location = new System.Drawing.Point(131, 3);
             this.decryptingOutputPath.Name = "decryptingOutputPath";
             this.decryptingOutputPath.Size = new System.Drawing.Size(486, 20);
             this.decryptingOutputPath.TabIndex = 1;
@@ -1080,7 +1106,7 @@
             // 
             this.label22.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.label22.AutoSize = true;
-            this.label22.Location = new System.Drawing.Point(627, 6);
+            this.label22.Location = new System.Drawing.Point(623, 6);
             this.label22.Name = "label22";
             this.label22.Size = new System.Drawing.Size(16, 13);
             this.label22.TabIndex = 5;
@@ -1089,7 +1115,7 @@
             // decryptingOutputPathButton
             // 
             this.decryptingOutputPathButton.Enabled = false;
-            this.decryptingOutputPathButton.Location = new System.Drawing.Point(650, 3);
+            this.decryptingOutputPathButton.Location = new System.Drawing.Point(646, 3);
             this.decryptingOutputPathButton.Name = "decryptingOutputPathButton";
             this.decryptingOutputPathButton.Size = new System.Drawing.Size(65, 19);
             this.decryptingOutputPathButton.TabIndex = 6;
@@ -1101,7 +1127,7 @@
             // 
             this.decryptingOutputPathCheck.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.decryptingOutputPathCheck.AutoSize = true;
-            this.decryptingOutputPathCheck.Location = new System.Drawing.Point(111, 5);
+            this.decryptingOutputPathCheck.Location = new System.Drawing.Point(109, 5);
             this.decryptingOutputPathCheck.Name = "decryptingOutputPathCheck";
             this.decryptingOutputPathCheck.Size = new System.Drawing.Size(15, 14);
             this.decryptingOutputPathCheck.TabIndex = 7;
@@ -1271,32 +1297,6 @@
             this.statusLabel.TabIndex = 2;
             this.statusLabel.Text = "Everything seems to be in order...";
             // 
-            // vgmstreamDownloadLabel
-            // 
-            this.vgmstreamDownloadLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.vgmstreamDownloadLabel.AutoSize = true;
-            this.vgmstreamDownloadLabel.Location = new System.Drawing.Point(3, 30);
-            this.vgmstreamDownloadLabel.Name = "vgmstreamDownloadLabel";
-            this.vgmstreamDownloadLabel.Size = new System.Drawing.Size(109, 13);
-            this.vgmstreamDownloadLabel.TabIndex = 5;
-            this.vgmstreamDownloadLabel.TabStop = true;
-            this.vgmstreamDownloadLabel.Text = "Download vgmstream";
-            this.vgmstreamDownloadLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.vgmstreamDownloadLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.vgmstreamDownloadLabel_LinkClicked);
-            // 
-            // linkLabel1
-            // 
-            this.linkLabel1.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Enabled = false;
-            this.linkLabel1.Location = new System.Drawing.Point(3, 55);
-            this.linkLabel1.Name = "linkLabel1";
-            this.linkLabel1.Size = new System.Drawing.Size(78, 13);
-            this.linkLabel1.TabIndex = 6;
-            this.linkLabel1.TabStop = true;
-            this.linkLabel1.Text = "Download SoX";
-            this.linkLabel1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1306,7 +1306,7 @@
             this.Controls.Add(this.tabPages);
             this.Controls.Add(this.statusStrip);
             this.Name = "Form1";
-            this.Text = "Taz: Wanted Modding Tool v1.2.1";
+            this.Text = "Taz: Wanted Modding Tool v1.2.2";
             this.tabPages.ResumeLayout(false);
             this.tabUnpacking.ResumeLayout(false);
             this.panel1.ResumeLayout(false);

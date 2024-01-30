@@ -170,6 +170,10 @@ namespace Taz_Wanted_Modding_Tool
                             var bmpThread = new Thread(decryptBMPWindows);
                             bmpThread.Start();
                             break;
+                        case 1: // gif
+                            var gifThread = new Thread(decryptGIFWindows);
+                            gifThread.Start();
+                            break;
                         case 6: // str+wav
                             var musicThread = new Thread(decryptMusic);
                             musicThread.Start();
@@ -261,6 +265,7 @@ namespace Taz_Wanted_Modding_Tool
                     statusLabel.ForeColor = System.Drawing.Color.Black;
                     statusLabel.Text = "Processing: " + fileName;
                 });
+
                 //open file
                 byte[] gameFile = File.ReadAllBytes(fileName);
 
@@ -342,6 +347,138 @@ namespace Taz_Wanted_Modding_Tool
                 {
                     if (replaceFiles) File.WriteAllBytes(fileName, convertedFile);
                     else File.WriteAllBytes(fileName + ".bmp", convertedFile);
+                }
+            }
+            Invoke((MethodInvoker)delegate
+            {
+                statusLabel.Text = "Done!";
+                statusLabel.ForeColor = System.Drawing.Color.Green;
+            });
+        }
+
+        private void decryptGIFWindows()
+        {
+            bool allowSubFolders;
+            bool onlyOneFile;
+            bool replaceFiles;
+            bool outputPathExists;
+            IEnumerable<string> allfiles;
+            string outputPath = "";
+
+            // getting information
+            if (decryptingSearchInSubfoldersCheck.Checked) allowSubFolders = true;
+            else allowSubFolders = false;
+
+            if (decryptingReplaceOriginalFilesCheck.Checked) replaceFiles = true;
+            else replaceFiles = false;
+
+            if (decryptingOnlyOneFileCheck.Checked) onlyOneFile = true;
+            else onlyOneFile = false;
+
+            if (decryptingOutputPathCheck.Checked) outputPathExists = true;
+            else outputPathExists = false;
+
+            // preparing
+            string filesPath = decryptingInputPath.Text;
+            if (onlyOneFile)
+            {
+                allfiles = new string[] { filesPath };
+                // I'm not sure if it'll work as I planned, but it's much easier than creating a template
+            }
+            else
+            {
+                if (allowSubFolders) allfiles = Directory.EnumerateFiles(filesPath, "*.gif", SearchOption.AllDirectories);
+                else allfiles = Directory.EnumerateFiles(filesPath, "*.gif", SearchOption.TopDirectoryOnly);
+            }
+
+            if (outputPathExists) outputPath = decryptingOutputPath.Text;
+            foreach (String fileName in allfiles)
+            {
+                Invoke((MethodInvoker)delegate
+                {
+                    statusLabel.ForeColor = System.Drawing.Color.Black;
+                    statusLabel.Text = "Processing: " + fileName;
+                });
+
+                //open file
+                byte[] gameFile = File.ReadAllBytes(fileName);
+
+                //header parts
+                byte[] bmpHeaderStart = {
+                        0x42, 0x4d, 0x46, 0x20, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
+                        0x00, 0x00
+                    };
+
+                //copy sizes to header
+                byte[] bmpHeaderWidthHeight = new byte[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    bmpHeaderWidthHeight[i] = gameFile[i];
+                }
+
+                byte[] bmpHeaderEnd = {
+                                    0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
+                        0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x13, 0x0b,
+                        0x00, 0x00, 0x13, 0x0b, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c,
+                        0x00, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x1f, 0x00,
+                        0x00, 0x00, 0x00, 0x80, 0x00, 0x00
+                    };
+
+                //copy frames number
+                byte gifFrames = gameFile[15];
+
+                //flip data + cut old header
+                byte[] convertedData = new byte[gameFile.Length - 28 - (gifFrames * 4)];
+                for (int i = 0; i < convertedData.Length; i++)
+                {
+                    convertedData[i] = gameFile[gameFile.Length - 1 - i];
+                }
+
+                //flip strings + flip words
+                //1 pixel = 2 bytes
+                int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
+                int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
+                for (int i = 0; i < height * gifFrames; i++)
+                {
+                    int start = i * width;
+                    for (int j = 0; j < width / 2; j++)
+                    {
+                        byte temp = convertedData[start + j];
+                        convertedData[start + j] = convertedData[start + width - j - 1];
+                        convertedData[start + width - j - 1] = temp;
+                    }
+                }
+
+                //copy size
+                //multiplied by 2 earlier in width
+                int frameSize = width * height;
+
+                //divide pictures
+                for (int i = 0; i < gifFrames; i++)
+                {
+                    //add parts
+                    int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + (frameSize);
+                    byte[] convertedFile = new byte[length];
+                    bmpHeaderStart.CopyTo(convertedFile, 0);
+                    bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
+                    bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
+                    byte[] frameData = convertedData.Skip(i * frameSize).Take(frameSize).ToArray();
+                    frameData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
+
+                    //save file
+                    if (outputPathExists)
+                    {
+                        string newFilePath = outputPath + "\\" + Path.GetFileName(fileName);
+                        newFilePath += (gifFrames - i).ToString() + ".bmp";
+                        File.WriteAllBytes(newFilePath, convertedFile);
+                    }
+                    else
+                    {
+                        File.WriteAllBytes(fileName + (gifFrames - i).ToString() + ".bmp", convertedFile);
+                        if (replaceFiles) File.Delete(fileName);
+                    }
                 }
             }
             Invoke((MethodInvoker)delegate
@@ -510,7 +647,7 @@ namespace Taz_Wanted_Modding_Tool
                 {
                     if (channels == 3)
                     {
-                        for (int i = 1; i < channels + 1; i++)
+                        for (int i = 3; i > 0; i--) // vgmstream bug - don't touch!
                         {
                             decodeCommand = "";
                             string channelNumber = "";
@@ -519,15 +656,15 @@ namespace Taz_Wanted_Modding_Tool
                             {
                                 case 1:
                                     channelNumber = "1";
-                                    songNumber = " normal.wav";
+                                    songNumber = "normal loop.wav";
                                     break;
                                 case 2:
                                     channelNumber = "2";
-                                    songNumber = " silent.wav";
+                                    songNumber = "tiptoe loop.wav";
                                     break;
                                 case 3:
                                     channelNumber = "3";
-                                    songNumber = " action.wav";
+                                    songNumber = "spin loop.wav";
                                     break;
                             }
                             txtpFilePath = fileName + ".txtp";
@@ -540,7 +677,7 @@ namespace Taz_Wanted_Modding_Tool
                             if (outputPathExists)
                             {
                                 tempFilePath = fileName;
-                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 19);
                                 tempFilePath += songNumber;
                                 decodeCommand += "-o " + "\"" + outputPath + "\\" + Path.GetFileName(tempFilePath) + "\"";
                                 decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
@@ -553,7 +690,7 @@ namespace Taz_Wanted_Modding_Tool
                             else
                             {
                                 tempFilePath = fileName;
-                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 19);
                                 tempFilePath += songNumber;
                                 decodeCommand += "-o " + "\"" + tempFilePath + "\"";
                                 decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
@@ -566,14 +703,13 @@ namespace Taz_Wanted_Modding_Tool
                         }
                         if (replaceFiles)
                         {
-                            File.Delete(infoFilePath);
                             File.Delete(fileName);
                         }
                         File.Delete(txtpFilePath);
                     }
                     else
                     {
-                        for (int i = 1; i < 4; i++)
+                        for (int i = 3; i > 0; i--) // vgmstream bug - don't touch!
                         {
                             decodeCommand = "";
                             string channelNumber = "";
@@ -582,15 +718,15 @@ namespace Taz_Wanted_Modding_Tool
                             {
                                 case 1:
                                     channelNumber = "1,2";
-                                    songNumber = " normal.wav";
+                                    songNumber = "normal loop.wav";
                                     break;
                                 case 2:
                                     channelNumber = "3,4";
-                                    songNumber = " silent.wav";
+                                    songNumber = "tiptoe loop.wav";
                                     break;
                                 case 3:
                                     channelNumber = "5,6";
-                                    songNumber = " action.wav";
+                                    songNumber = "spin loop.wav";
                                     break;
                             }
                             txtpFilePath = fileName + ".txtp";
@@ -603,7 +739,7 @@ namespace Taz_Wanted_Modding_Tool
                             if (outputPathExists)
                             {
                                 tempFilePath = fileName;
-                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 19);
                                 tempFilePath += songNumber;
                                 decodeCommand += "-o " + "\"" + outputPath + "\\" + Path.GetFileName(tempFilePath) + "\"";
                                 decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
@@ -616,9 +752,9 @@ namespace Taz_Wanted_Modding_Tool
                             else
                             {
                                 tempFilePath = fileName;
-                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 8);
+                                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 19);
                                 tempFilePath += songNumber;
-                                decodeCommand += "-o " + "\"" + tempFilePath + "\"";
+                                decodeCommand += "-o \"" + tempFilePath + "\"";
                                 decodeCommand += " -i " + "\"" + txtpFilePath + "\"";
                                 ProcessStartInfo vgmstream = new ProcessStartInfo(vgmstreamPath);
                                 vgmstream.Arguments = decodeCommand;
@@ -642,321 +778,7 @@ namespace Taz_Wanted_Modding_Tool
                 statusLabel.ForeColor = System.Drawing.Color.Green;
             });
         }
-        /*
-        private void convertGif_Click(object sender, EventArgs e)
-        {
-            //open dialog
-            if (openFile.ShowDialog() == DialogResult.OK)
-            {
-                foreach (String fileName in openFile.FileNames)
-                {
-                    //open file
-                    byte[] gameFile = File.ReadAllBytes(fileName);
-
-                    //header parts
-                    byte[] bmpHeaderStart = {
-                        0x42, 0x4d, 0x46, 0x20, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
-                        0x00, 0x00
-                    };
-
-                    //copy sizes to header
-                    byte[] bmpHeaderWidthHeight = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                    {
-                        bmpHeaderWidthHeight[i] = gameFile[i];
-                    }
-
-                    byte[] bmpHeaderEnd = {
-                                    0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
-                        0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x13, 0x0b,
-                        0x00, 0x00, 0x13, 0x0b, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c,
-                        0x00, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x1f, 0x00,
-                        0x00, 0x00, 0x00, 0x80, 0x00, 0x00
-                    };
-
-                    //copy frames number
-                    byte gifFrames = gameFile[15];
-
-                    //flip data + cut old header
-                    byte[] convertedData = new byte[gameFile.Length - 28 - (gifFrames * 4)];
-                    for (int i = 0; i < convertedData.Length; i++)
-                    {
-                        convertedData[i] = gameFile[gameFile.Length - 1 - i];
-                    }
-
-                    //flip strings + flip words
-                    //1 pixel = 2 bytes
-                    int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
-                    int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
-                    for (int i = 0; i < height * gifFrames; i++)
-                    {
-                        int start = i * width;
-                        for (int j = 0; j < width / 2; j++)
-                        {
-                            byte temp = convertedData[start + j];
-                            convertedData[start + j] = convertedData[start + width - j - 1];
-                            convertedData[start + width - j - 1] = temp;
-                        }
-                    }
-
-                    //copy size
-                    //multiplied by 2 earlier in width
-                    int frameSize = width * height;
-
-                    //divide pictures
-                    for (int i = 0; i < gifFrames; i++)
-                    {
-                        //add parts
-                        int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + (frameSize);
-                        byte[] convertedFile = new byte[length];
-                        bmpHeaderStart.CopyTo(convertedFile, 0);
-                        bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
-                        bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
-                        byte[] frameData = convertedData.Skip(i * frameSize).Take(frameSize).ToArray();
-                        frameData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
-
-                        //save file with new name
-                        string newname = fileName + (gifFrames - i - 1).ToString() + ".bmp";
-                        File.WriteAllBytes(newname, convertedFile);
-                        //File.WriteAllBytes(fileName + "_" + (gifFrames-i-1).ToString() + ".bmp", convertedFile);
-                    }
-                    File.Delete(fileName);
-                }
-            }
-        }
-        */
-        /*
-        private void convertAllGifs_Click(object sender, EventArgs e)
-        {
-            string filesPath = allFilesPath.Text;
-            IEnumerable<string> allfiles = Directory.EnumerateFiles(filesPath, "*.gif", SearchOption.AllDirectories);
-            foreach (String fileName in allfiles)
-                {
-                    //open file
-                    byte[] gameFile = File.ReadAllBytes(fileName);
-
-                    //header parts
-                    byte[] bmpHeaderStart = {
-                        0x42, 0x4d, 0x46, 0x20, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x38, 0x00,
-                        0x00, 0x00
-                    };
-
-                    //copy sizes to header
-                    byte[] bmpHeaderWidthHeight = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                    {
-                        bmpHeaderWidthHeight[i] = gameFile[i];
-                    }
-
-                    byte[] bmpHeaderEnd = {
-                                    0x01, 0x00, 0x10, 0x00, 0x03, 0x00,
-                        0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x13, 0x0b,
-                        0x00, 0x00, 0x13, 0x0b, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c,
-                        0x00, 0x00, 0xe0, 0x03, 0x00, 0x00, 0x1f, 0x00,
-                        0x00, 0x00, 0x00, 0x80, 0x00, 0x00
-                    };
-
-                    //copy frames number
-                    byte gifFrames = gameFile[15];
-
-                    //flip data + cut old header
-                    byte[] convertedData = new byte[gameFile.Length - 28 - (gifFrames * 4)];
-                    for (int i = 0; i < convertedData.Length; i++)
-                    {
-                        convertedData[i] = gameFile[gameFile.Length - 1 - i];
-                    }
-
-                    //flip strings + flip words
-                    //1 pixel = 2 bytes
-                    int width = BitConverter.ToInt32(bmpHeaderWidthHeight, 0) * 2;
-                    int height = BitConverter.ToInt32(bmpHeaderWidthHeight, 4);
-                    for (int i = 0; i < height * gifFrames; i++)
-                    {
-                        int start = i * width;
-                        for (int j = 0; j < width / 2; j++)
-                        {
-                            byte temp = convertedData[start + j];
-                            convertedData[start + j] = convertedData[start + width - j - 1];
-                            convertedData[start + width - j - 1] = temp;
-                        }
-                    }
-
-                    //copy size
-                    //multiplied by 2 earlier in width
-                    int frameSize = width * height;
-
-                    //divide pictures
-                    for (int i = 0; i < gifFrames; i++)
-                    {
-                        //add parts
-                        int length = bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length + (frameSize);
-                        byte[] convertedFile = new byte[length];
-                        bmpHeaderStart.CopyTo(convertedFile, 0);
-                        bmpHeaderWidthHeight.CopyTo(convertedFile, bmpHeaderStart.Length);
-                        bmpHeaderEnd.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length);
-                        byte[] frameData = convertedData.Skip(i * frameSize).Take(frameSize).ToArray();
-                        frameData.CopyTo(convertedFile, bmpHeaderStart.Length + bmpHeaderWidthHeight.Length + bmpHeaderEnd.Length);
-
-                        //save file with new name
-                        string newname = fileName + (gifFrames - i - 1).ToString() + ".bmp";
-                        File.WriteAllBytes(newname, convertedFile);
-                        //File.WriteAllBytes(fileName + "_" + (gifFrames-i-1).ToString() + ".bmp", convertedFile);
-                    }
-                    File.Delete(fileName);
-            }
-        }
-        */
-        /*
-        private void convertTga_Click(object sender, EventArgs e)
-        {
-            //open open and save dialogs
-            if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogResult.OK)
-            {
-                foreach (String fileName in openFile.FileNames)
-                {
-                    //open file
-                    byte[] gameFile = File.ReadAllBytes(fileName);
-
-                    //if bitmap
-                    if (gameFile[0] == 0x42 && gameFile[1] == 0x4D)
-                    {
-                        //save file with new name
-                        string newbmpname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileNameWithoutExtension(fileName) + ".bmp";
-                        File.WriteAllBytes(newbmpname, gameFile);
-                        continue;
-                    }
-
-                    //header part
-                    byte[] tgaHeader = {
-                        0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x28
-                    };
-
-                    //copy sizes to header
-                    tgaHeader[12] = gameFile[0];
-                    tgaHeader[13] = gameFile[1];
-                    tgaHeader[14] = gameFile[4];
-                    tgaHeader[15] = gameFile[5];
-
-                    int colorDepth;
-                    //copy color depth
-                    if (gameFile[8] == 1)
-                    {
-                        colorDepth = 32;
-                        tgaHeader[16] = 32;
-                    }
-                    else if (gameFile[8] == 3)
-                    {
-                        colorDepth = 16;
-                        tgaHeader[16] = 16;
-                    }
-                    else
-                    {
-                        continue;
-                    }
-
-                    //footer part
-                    byte[] tgaFooter = {
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x54, 0x52, 0x55, 0x45, 0x56, 0x49, 0x53, 0x49,
-                        0x4f, 0x4e, 0x2d, 0x58, 0x46, 0x49, 0x4c, 0x45,
-                        0x2e, 0x00
-
-                    };
-
-                    //cut data without header and trash at end
-                    //1 pixel = (colorDepth/8) bytes
-                    int width = BitConverter.ToInt16(tgaHeader, 12) * (colorDepth / 8); //check in header
-                    int height = BitConverter.ToInt16(tgaHeader, 14);
-
-                    byte[] rawData = new byte[width * height];
-                    for (int i = 0; i < rawData.Length; i++)
-                    {
-                        rawData[i] = gameFile[i + 20];
-                    }
-
-                    //flip data
-                    //byte[] convertedData = new byte[rawData.Length];
-                    /*
-                    for (int i = 0; i < convertedData.Length; i++)
-                    {
-                        convertedData[i] = rawData[rawData.Length - 1 - i];
-                    }
-                    //flip strings + flip words
-                    for (int i = 0; i < height; i++)
-                    {
-                        int start = i * width;
-                        for (int j = 0; j < width / 2; j++)
-                        {
-                            byte temp = convertedData[start + j];
-                            convertedData[start + j] = convertedData[start + width - j - 1];
-                            convertedData[start + width - j - 1] = temp;
-                        }
-                    }
-                    */
-        /*
-        //flip words
-        for (int i = 0; i < convertedData.Length; i+=2)
-        {
-            byte temp = convertedData[i];
-            convertedData[i] = convertedData[i+1];
-            convertedData[i + 1] = temp;
-        }
-        //add * / in the future
-        //add parts
-        int length = tgaHeader.Length + rawData.Length + tgaFooter.Length;
-        byte[] convertedFile = new byte[length];
-        tgaHeader.CopyTo(convertedFile, 0);
-        rawData.CopyTo(convertedFile, tgaHeader.Length);
-        tgaFooter.CopyTo(convertedFile, tgaHeader.Length + rawData.Length);
-
-        //save file with new name
-        string newname = Path.GetDirectoryName(saveFile.FileName) + "\\" + Path.GetFileName(fileName)/* + ".tga"*/ // ; missed
-        /* File.WriteAllBytes(newname, convertedFile); uncomment if needed
-    }
-}
-}
-/*
-private void convertWav_Click(object sender, EventArgs e)
-{
-//open open and save dialogs
-if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogResult.OK)
-{
-
-    //temp file (.raw in end is required for sox)
-    string tempfile = Path.GetDirectoryName(saveFile.FileName) + "\\" + "stream.raw";
-
-    foreach (String fileName in openFile.FileNames)
-    {
-        //open file
-        byte[] gameFile = File.ReadAllBytes(fileName);
-        byte[] rawStream = new byte[gameFile.Length - 32];
-        Array.Copy(gameFile, 16, rawStream, 0, rawStream.Length);
-        //create temp file
-        File.WriteAllBytes(tempfile, rawStream);
-
-        //get rate
-        UInt32 BitRate = BitConverter.ToUInt32(gameFile, 4);
-
-        //SoX
-        ProcessStartInfo SoxInfo = new ProcessStartInfo(SoXpath.Text);
-        SoxInfo.Arguments = "-r " + BitRate.ToString() + " -e signed-integer -b 16 -c 1 " + "\"" + tempfile + "\"" + " " + "\"" + Path.Combine(Path.GetDirectoryName(saveFile.FileName), Path.GetFileName(fileName)) + "\"";
-        SoxInfo.WindowStyle = ProcessWindowStyle.Hidden;
-        var SoxProc = Process.Start(SoxInfo);
-
-        //Wait
-        SoxProc.WaitForExit();
-
-    }
-    File.Delete(tempfile);
-}
-}
-*/
+       
         /*
         private void ps2bmp_Click(object sender, EventArgs e)
         {
@@ -1864,6 +1686,9 @@ if (openFile.ShowDialog() == DialogResult.OK && saveFile.ShowDialog() == DialogR
                         case 0: // bmp
                             decryptingEarlyBuildsCheck.Text = "MileStone #10 or earlier";
                             decryptingEarlyBuildsCheck.Visible = true;
+                            decryptButton.Enabled = true;
+                            break;
+                        case 1: // gif
                             decryptButton.Enabled = true;
                             break;
                         case 6: // .str + .wav
