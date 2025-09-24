@@ -1,3 +1,7 @@
+### This repository is archived!
+### The development of the program has been discontinued and a new application is being developed instead.
+### Old README.md:
+
 # Taz: Wanted · Modding Tool
 Original source code belongs to **[MuxaJlbl4 (MuLLlaH9!)](https://github.com/MuxaJlbl4)**.
 
